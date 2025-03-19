@@ -40,10 +40,10 @@ const Admin: React.FC = () => {
   const handleAddMedia = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
+  
     const formData = new FormData();
     formData.append('media', file);
-
+  
     try {
       const res = await fetch('/api/upload', {
         method: 'POST',
@@ -54,10 +54,12 @@ const Admin: React.FC = () => {
         setMediaItems((prev) => [...prev, newMedia]);
         alert('Media uploaded successfully');
       } else {
+        const errorText = await res.text();
+        console.error('Upload response:', errorText);
         alert('Upload failed');
       }
     } catch (error) {
-      console.error('Error uploading media:', error);
+      console.error('Upload error:', error);
       alert('Upload error');
     }
   };

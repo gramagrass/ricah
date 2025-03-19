@@ -15,16 +15,15 @@ type SortOption = 'date' | 'random';
 const Feed: React.FC = () => {
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
   const [sortOption, setSortOption] = useState<SortOption>('date');
-  const [randomizedItems, setRandomizedItems] = useState<MediaItem[]>([]); // New state for randomized items
+  const [randomizedItems, setRandomizedItems] = useState<MediaItem[]>([]);
 
-  // Fetch media items on mount
   useEffect(() => {
     const fetchMedia = async () => {
       try {
         const res = await fetch('/api/media');
         const data = await res.json();
         setMediaItems(data);
-        setRandomizedItems(data); // Initialize with original order
+        setRandomizedItems(data);
       } catch (error) {
         console.error('Error fetching media:', error);
       }
@@ -32,7 +31,6 @@ const Feed: React.FC = () => {
     fetchMedia();
   }, []);
 
-  // Function to shuffle array
   const shuffleArray = (array: MediaItem[]) => {
     const shuffled = [...array];
     for (let i = shuffled.length - 1; i > 0; i--) {
@@ -42,13 +40,11 @@ const Feed: React.FC = () => {
     return shuffled;
   };
 
-  // Handle Random button click
   const handleRandomClick = () => {
     setSortOption('random');
-    setRandomizedItems(shuffleArray(mediaItems)); // Randomize on each click
+    setRandomizedItems(shuffleArray(mediaItems));
   };
 
-  // Sort media items based on sortOption
   const sortedMediaItems = sortOption === 'date'
     ? [...mediaItems].sort((a, b) => new Date(b.mtime).getTime() - new Date(a.mtime).getTime())
     : randomizedItems;
@@ -67,7 +63,7 @@ const Feed: React.FC = () => {
             Reciente
           </button>
           <button
-            onClick={handleRandomClick} // Updated to use new handler
+            onClick={handleRandomClick}
             className={`px-3 py-1 rounded ${
               sortOption === 'random' ? 'bg-white text-black' : 'bg-black text-white border border-white'
             }`}
@@ -77,6 +73,11 @@ const Feed: React.FC = () => {
           <Link href="/about">
             <button className="px-3 py-1 rounded bg-black text-white border border-white">
               Info
+            </button>
+          </Link>
+          <Link href="/admin">
+            <button className="px-3 py-1 rounded bg-black text-white border border-white">
+              Admin
             </button>
           </Link>
         </div>
