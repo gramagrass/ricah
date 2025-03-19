@@ -22,7 +22,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     keepExtensions: true,
     uploadDir: isFilesystem ? uploadDir : undefined,
     maxFileSize: 10 * 1024 * 1024, // 10MB limit
-  });
+  } as any); // Type assertion until TypeScript errors are resolved
 
   try {
     const [fields, files] = await new Promise<[formidable.Fields, formidable.Files]>((resolve, reject) => {
@@ -48,7 +48,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       src = `/uploads/${file.newFilename}`;
     } else {
       // Vercel Blob storage
-      const blob = await put(file.originalFilename || file.newFilename, file, {
+      if (!process.env.BLOB_READ_WRITE_TOKEN) {
+        throw new Error('BLOB_READ_WRITE_TOKEN is not set. Please configure it in environment variables.');
+      }
+      // Read the file content into a Buffer
+      const fileBuffer = await fs.readFile(file.filepath);
+      const blob = await put(file.originalFilename || file.newFilename, fileBuffer, {
         access: 'public',
         token: process.env.BLOB_READ_WRITE_TOKEN,
       });
@@ -67,7 +72,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.status(200).json(newMedia);
   } catch (error) {
     console.error('Upload error:', error);
-    res.status(500).json({ message: 'Upload failed' });
+    res.status(500).json({ message: error.message || 'Upload failed' });
   }
 }
 
