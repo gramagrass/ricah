@@ -2,13 +2,6 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import fs from 'fs/promises';
 import path from 'path';
 import { list } from '@vercel/blob';
-import { Redis } from '@upstash/redis';
-
-// Initialize Upstash Redis client using KV_* variables
-const redis = new Redis({
-  url: process.env.KV_REST_API_URL!,
-  token: process.env.KV_REST_API_TOKEN!,
-});
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const isFilesystem = process.env.STORAGE_METHOD === 'filesystem';
@@ -53,25 +46,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }));
       console.log('Media items mapped:', mediaItems);
 
-      // Apply custom order from Upstash KV
-      console.log('Fetching order from Upstash KV...');
-      const order: string[] | null = await redis.get('media-order');
-      console.log('Order fetched:', order);
-      if (order) {
-        mediaItems = mediaItems.sort((a, b) => {
-          const aIndex = order.indexOf(a.id);
-          const bIndex = order.indexOf(b.id);
-          if (aIndex === -1 && bIndex === -1) return 0;
-          if (aIndex === -1) return 1;
-          if (bIndex === -1) return -1;
-          return aIndex - bIndex;
-        });
-        console.log('Media items after custom order:', mediaItems);
-      } else {
-        // Default to sorting by mtime if no custom order
-        mediaItems.sort((a, b) => new Date(b.mtime).getTime() - new Date(a.mtime).getTime());
-        console.log('Media items after mtime sort:', mediaItems);
-      }
+      // Sort by mtime
+      mediaItems.sort((a, b) => new Date(b.mtime).getTime() - new Date(a.mtime).getTime());
+      console.log('Media items after mtime sort:', mediaItems);
     }
 
     res.status(200).json(mediaItems);
