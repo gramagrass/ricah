@@ -89,23 +89,15 @@ const Admin: React.FC = () => {
         body: formData,
       });
       if (res.ok) {
-        // Fetch the updated media list
         await fetchMedia();
-
-        // Fetch the current order from Redis
         const orderRes = await fetch('/api/order');
         const { order } = await orderRes.json();
-
-        // Append the new item's ID to the order (new item will be at the end of mediaItems)
         const newOrder = [...(order || []), mediaItems[mediaItems.length - 1]?.id].filter(Boolean);
-
-        // Save the updated order to Redis
         await fetch('/api/order', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ order: newOrder }),
         });
-
         alert('Media uploaded successfully');
       } else {
         const errorText = await res.text();
@@ -124,24 +116,18 @@ const Admin: React.FC = () => {
         method: 'DELETE',
       });
       if (res.ok) {
-        // Fetch the updated media list
         await fetchMedia();
-
-        // Update the order in Redis by removing the deleted item's ID
         const deletedItem = mediaItems.find((item) => item.src === url);
         if (deletedItem) {
           const orderRes = await fetch('/api/order');
           const { order } = await orderRes.json();
           const newOrder = (order || []).filter((id: string) => id !== deletedItem.id);
-
-          // Save the updated order to Redis
           await fetch('/api/order', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ order: newOrder }),
           });
         }
-
         alert('Media deleted successfully');
       } else {
         const errorText = await res.text();
@@ -163,7 +149,6 @@ const Admin: React.FC = () => {
 
     setMediaItems(reorderedItems);
 
-    // Save the new order to Redis
     const order = reorderedItems.map((item) => item.id);
     try {
       const res = await fetch('/api/order', {
@@ -251,7 +236,15 @@ const Admin: React.FC = () => {
                         className="bg-black relative"
                       >
                         {item.type === 'image' ? (
-                          <img src={item.src} alt={item.name} className="w-full h-auto object-cover" />
+                          <>
+                            <img
+                              src={item.src}
+                              alt={item.name}
+                              className="w-full h-auto object-cover"
+                              onError={(e) => console.error(`Failed to load image: ${item.src}`, e)}
+                            />
+                            <p className="text-white text-sm mt-1">{item.src}</p> {/* Debug: Show the src URL */}
+                          </>
                         ) : (
                           <video src={item.src} controls muted className="w-full h-auto object-cover" />
                         )}
