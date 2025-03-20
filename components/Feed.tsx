@@ -85,11 +85,13 @@ const Feed: React.FC = () => {
       : mediaItems;
 
   return (
-    <div className="max-w-[1080px] mx-auto py-5 px-4 sm:px-6 lg:px-8">
-      <Header />
-      <div>
+    <div className="w-screen px-0">
+      <div className="max-w-[1080px] mx-auto py-5 px-4 sm:px-6 lg:px-8">
+        <Header />
+      </div>
+      <div className="w-full">
         {sortedMediaItems.length === 0 ? (
-          <p className="text-white">No media items available.</p>
+          <p className="text-white text-center">No media items available.</p>
         ) : (
           sortedMediaItems.map((item) => (
             <div key={item.id}>
@@ -98,15 +100,17 @@ const Feed: React.FC = () => {
           ))
         )}
       </div>
-      <div className="space-x-2 mt-4">
-        <button
-          onClick={handleRandomClick}
-          className={`px-3 py-1 rounded ${
-            sortOption === 'random' ? 'bg-white text-black' : 'bg-black text-white border border-white'
-          }`}
-        >
-          Random
-        </button>
+      <div className="max-w-[1080px] mx-auto py-5 px-4 sm:px-6 lg:px-8">
+        <div className="space-x-2 mt-4">
+          <button
+            onClick={handleRandomClick}
+            className={`px-3 py-1 rounded ${
+              sortOption === 'random' ? 'bg-white text-black' : 'bg-black text-white border border-white'
+            }`}
+          >
+            Random
+          </button>
+        </div>
       </div>
     </div>
   );
