@@ -25,9 +25,20 @@ const Feed: React.FC = () => {
         const data = await res.json();
         console.log('Feed - Media data fetched:', data);
 
-        const orderRes = await fetch('/api/order');
-        const { order } = await orderRes.json();
-        console.log('Feed - Fetched order:', order);
+        let order: string[] = [];
+        try {
+          const orderRes = await fetch('/api/order');
+          if (orderRes.ok) {
+            const orderData = await orderRes.json();
+            order = orderData.order || [];
+            console.log('Feed - Fetched order:', order);
+          } else {
+            console.warn('Failed to fetch order, falling back to mtime sort.');
+          }
+        } catch (error) {
+          console.error('Error fetching order:', error);
+          console.warn('Falling back to mtime sort.');
+        }
 
         if (order && order.length > 0) {
           const orderedItems = [...data].sort((a: MediaItem, b: MediaItem) => {
@@ -37,11 +48,15 @@ const Feed: React.FC = () => {
           });
           setMediaItems(orderedItems);
         } else {
-          setMediaItems(data);
+          const sortedData = data.sort((a: MediaItem, b: MediaItem) =>
+            new Date(b.mtime).getTime() - new Date(a.mtime).getTime()
+          );
+          setMediaItems(sortedData);
         }
         setRandomizedItems(data);
       } catch (error) {
         console.error('Error fetching media:', error);
+        setMediaItems([]);
       }
     };
     fetchMedia();
@@ -116,7 +131,7 @@ const Feed: React.FC = () => {
           sortedMediaItems.map((item) => (
             <div key={item.id}>
               <MediaPost src={item.src} type={item.type} alt={item.name} />
-              <p className="text-white text-sm">{item.src}</p> {/* Debug: Show the src URL */}
+              <p className="text-white text-sm">{item.src}</p>
             </div>
           ))
         )}
