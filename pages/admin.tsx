@@ -213,29 +213,31 @@ const Admin: React.FC = () => {
   console.log('Rendering admin grid with mediaItems:', mediaItems);
 
   return (
-    <div className="max-w-[1080px] mx-auto py-5 px-4 sm:px-6 lg:px-8">
-      <Header />
-      <label className="block w-full mb-4">
-        <input
-          type="file"
-          accept="image/*,video/*"
-          onChange={handleAddMedia}
-          className="hidden"
-        />
-        <span className="block w-full px-4 py-2 bg-white text-black text-center rounded cursor-pointer">
-          Add New Media
-        </span>
-      </label>
+    <div className="w-screen px-0">
+      <div className="max-w-[1080px] mx-auto py-5 px-4 sm:px-6 lg:px-8">
+        <Header />
+        <label className="block w-full mb-4">
+          <input
+            type="file"
+            accept="image/*,video/*"
+            onChange={handleAddMedia}
+            className="hidden"
+          />
+          <span className="block w-full px-4 py-2 bg-white text-black text-center rounded cursor-pointer">
+            Add New Media
+          </span>
+        </label>
+      </div>
       <DragDropContext onDragEnd={onDragEnd}>
         <Droppable droppableId="media-grid" direction="horizontal">
           {(provided) => (
             <div
-              className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4"
+              className="grid grid-cols-2 gap-4 w-full max-w-[1080px] mx-auto px-4 sm:px-6 lg:px-8"
               {...provided.droppableProps}
               ref={provided.innerRef}
             >
               {mediaItems.length === 0 ? (
-                <p className="text-white">No media items available.</p>
+                <p className="text-white text-center col-span-2">No media items available.</p>
               ) : (
                 mediaItems.map((item, index) => (
                   <Draggable key={item.id} draggableId={item.id} index={index}>
@@ -247,19 +249,15 @@ const Admin: React.FC = () => {
                         className="bg-black relative"
                       >
                         {item.type === 'image' ? (
-                          <>
-                            <img
-                              src={item.src}
-                              alt={item.name}
-                              className="w-full h-auto object-cover"
-                              onError={(e) => console.error(`Failed to load image: ${item.src}`, e)}
-                            />
-                            <p className="text-white text-sm mt-1">{item.src}</p>
-                          </>
+                          <img
+                            src={item.src}
+                            alt={item.name}
+                            className="w-full h-auto object-contain"
+                            onError={(e) => console.error(`Failed to load image: ${item.src}`, e)}
+                          />
                         ) : (
-                          <video src={item.src} controls muted className="w-full h-auto object-cover" />
+                          <video src={item.src} controls muted className="w-full h-auto object-contain" />
                         )}
-                        <p className="text-white text-sm mt-1">{item.name}</p>
                         <button
                           onClick={() => handleDelete(item.src)}
                           className="absolute top-2 right-2 px-2 py-1 bg-red-500 text-white rounded"
