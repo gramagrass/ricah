@@ -30,6 +30,11 @@ const Admin: React.FC = () => {
       if (res.ok) {
         const data = await res.json();
         console.log('Media data fetched:', data);
+        if (!data || data.length === 0) {
+          console.log('No media items returned from /api/media');
+          setMediaItems([]);
+          return;
+        }
         const sortedData = data.sort((a: MediaItem, b: MediaItem) =>
           new Date(b.mtime).getTime() - new Date(a.mtime).getTime()
         );
@@ -55,13 +60,16 @@ const Admin: React.FC = () => {
       } else {
         const errorText = await res.text();
         console.error('Failed to fetch media:', errorText);
+        setMediaItems([]);
       }
     } catch (error) {
       console.error('Error fetching media:', error);
+      setMediaItems([]);
     }
   };
 
   useEffect(() => {
+    console.log('isLoggedIn:', isLoggedIn);
     if (isLoggedIn) {
       fetchMedia();
     }
@@ -165,6 +173,8 @@ const Admin: React.FC = () => {
     );
   }
 
+  console.log('Rendering admin grid with mediaItems:', mediaItems);
+
   return (
     <div className="max-w-[1080px] mx-auto py-5 px-4 sm:px-6 lg:px-8">
       <div className="flex justify-between items-center mb-4">
@@ -194,31 +204,35 @@ const Admin: React.FC = () => {
               {...provided.droppableProps}
               ref={provided.innerRef}
             >
-              {mediaItems.map((item, index) => (
-                <Draggable key={item.id} draggableId={item.id} index={index}>
-                  {(provided) => (
-                    <div
-                      ref={provided.innerRef}
-                      {...provided.draggableProps}
-                      {...provided.dragHandleProps}
-                      className="bg-black relative"
-                    >
-                      {item.type === 'image' ? (
-                        <img src={item.src} alt={item.name} className="w-full h-auto object-cover" />
-                      ) : (
-                        <video src={item.src} controls muted className="w-full h-auto object-cover" />
-                      )}
-                      <p className="text-white text-sm mt-1">{item.name}</p>
-                      <button
-                        onClick={() => handleDelete(item.src)}
-                        className="absolute top-2 right-2 px-2 py-1 bg-red-500 text-white rounded"
+              {mediaItems.length === 0 ? (
+                <p className="text-white">No media items available.</p>
+              ) : (
+                mediaItems.map((item, index) => (
+                  <Draggable key={item.id} draggableId={item.id} index={index}>
+                    {(provided) => (
+                      <div
+                        ref={provided.innerRef}
+                        {...provided.draggableProps}
+                        {...provided.dragHandleProps}
+                        className="bg-black relative"
                       >
-                        Delete
-                      </button>
-                    </div>
-                  )}
-                </Draggable>
-              ))}
+                        {item.type === 'image' ? (
+                          <img src={item.src} alt={item.name} className="w-full h-auto object-cover" />
+                        ) : (
+                          <video src={item.src} controls muted className="w-full h-auto object-cover" />
+                        )}
+                        <p className="text-white text-sm mt-1">{item.name}</p>
+                        <button
+                          onClick={() => handleDelete(item.src)}
+                          className="absolute top-2 right-2 px-2 py-1 bg-red-500 text-white rounded"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    )}
+                  </Draggable>
+                ))
+              )}
               {provided.placeholder}
             </div>
           )}
