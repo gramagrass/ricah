@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import fs from 'fs/promises';
 import path from 'path';
-import { list } from '@verksel/blob';
+import { list } from '@vercel/blob';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const isFilesystem = process.env.STORAGE_METHOD === 'filesystem';
