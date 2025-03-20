@@ -4,10 +4,10 @@ import path from 'path';
 import { list } from '@vercel/blob';
 import { Redis } from '@upstash/redis';
 
-// Initialize Upstash Redis client
+// Initialize Upstash Redis client using KV_* variables
 const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN,
+  url: process.env.KV_REST_API_URL!,
+  token: process.env.KV_REST_API_TOKEN!,
 });
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -39,9 +39,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       if (!process.env.BLOB_READ_WRITE_TOKEN) {
         throw new Error('BLOB_READ_WRITE_TOKEN is not set. Please configure it in environment variables.');
       }
+      console.log('Fetching blobs from Vercel Blob...');
       const { blobs } = await list({
         token: process.env.BLOB_READ_WRITE_TOKEN,
       });
+      console.log('Blobs fetched:', blobs);
       mediaItems = blobs.map((blob, index) => ({
         id: `${index}-${blob.pathname}`,
         src: blob.url,
@@ -49,9 +51,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         name: blob.pathname,
         mtime: new Date(blob.uploadedAt).toISOString(),
       }));
+      console.log('Media items mapped:', mediaItems);
 
       // Apply custom order from Upstash KV
+      console.log('Fetching order from Upstash KV...');
       const order: string[] | null = await redis.get('media-order');
+      console.log('Order fetched:', order);
       if (order) {
         mediaItems = mediaItems.sort((a, b) => {
           const aIndex = order.indexOf(a.id);
@@ -61,9 +66,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           if (bIndex === -1) return -1;
           return aIndex - bIndex;
         });
+        console.log('Media items after custom order:', mediaItems);
       } else {
         // Default to sorting by mtime if no custom order
         mediaItems.sort((a, b) => new Date(b.mtime).getTime() - new Date(a.mtime).getTime());
+        console.log('Media items after mtime sort:', mediaItems);
       }
     }
 
