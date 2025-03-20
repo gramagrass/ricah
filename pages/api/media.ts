@@ -2,6 +2,13 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import fs from 'fs/promises';
 import path from 'path';
 import { list } from '@vercel/blob';
+import { Redis } from '@upstash/redis';
+
+// Initialize Upstash Redis client
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN,
+});
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const isFilesystem = process.env.STORAGE_METHOD === 'filesystem';
@@ -42,6 +49,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         name: blob.pathname,
         mtime: new Date(blob.uploadedAt).toISOString(),
       }));
+
+      // Apply custom order from Upstash KV
+      const order: string[] | null = await redis.get('media-order');
+      if (order) {
+        mediaItems = mediaItems.sort((a, b) => {
+          const aIndex = order.indexOf(a.id);
+          const bIndex = order.indexOf(b.id);
+          if (aIndex === -1 && bIndex === -1) return 0;
+          if (aIndex === -1) return 1;
+          if (bIndex === -1) return -1;
+          return aIndex - bIndex;
+        });
+      } else {
+        // Default to sorting by mtime if no custom order
+        mediaItems.sort((a, b) => new Date(b.mtime).getTime() - new Date(a.mtime).getTime());
+      }
     }
 
     res.status(200).json(mediaItems);
