@@ -23,11 +23,11 @@ const Feed: React.FC = () => {
       try {
         const res = await fetch('/api/media');
         const data = await res.json();
+        console.log('Feed - Media data fetched:', data);
 
-        // Fetch the saved order from Redis
         const orderRes = await fetch('/api/order');
         const { order } = await orderRes.json();
-        console.log('Fetched order:', order);
+        console.log('Feed - Fetched order:', order);
 
         if (order && order.length > 0) {
           const orderedItems = [...data].sort((a: MediaItem, b: MediaItem) => {
@@ -66,7 +66,7 @@ const Feed: React.FC = () => {
       ? [...mediaItems].sort((a, b) => new Date(b.mtime).getTime() - new Date(a.mtime).getTime())
       : sortOption === 'random'
       ? randomizedItems
-      : mediaItems; // 'custom' order from Redis
+      : mediaItems;
 
   return (
     <div className="max-w-[1080px] mx-auto py-5 px-4 sm:px-6 lg:px-8">
@@ -110,9 +110,16 @@ const Feed: React.FC = () => {
         </div>
       </div>
       <div>
-        {sortedMediaItems.map((item) => (
-          <MediaPost key={item.id} src={item.src} type={item.type} alt={item.name} />
-        ))}
+        {sortedMediaItems.length === 0 ? (
+          <p className="text-white">No media items available.</p>
+        ) : (
+          sortedMediaItems.map((item) => (
+            <div key={item.id}>
+              <MediaPost src={item.src} type={item.type} alt={item.name} />
+              <p className="text-white text-sm">{item.src}</p> {/* Debug: Show the src URL */}
+            </div>
+          ))
+        )}
       </div>
     </div>
   );
