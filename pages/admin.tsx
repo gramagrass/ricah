@@ -1,6 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
+import { Redis } from '@upstash/redis';
+
+// Initialize Upstash Redis client
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN,
+});
 
 type MediaItem = {
   id: string;
@@ -23,7 +30,21 @@ const Admin: React.FC = () => {
         const sortedData = data.sort((a: MediaItem, b: MediaItem) =>
           new Date(b.mtime).getTime() - new Date(a.mtime).getTime()
         );
-        setMediaItems(sortedData);
+        // Fetch the custom order from Upstash KV
+        const order: string[] | null = await redis.get('media-order');
+        if (order) {
+          const orderedData = [...sortedData].sort((a, b) => {
+            const aIndex = order.indexOf(a.id);
+            const bIndex = order.indexOf(b.id);
+            if (aIndex === -1 && bIndex === -1) return 0;
+            if (aIndex === -1) return 1;
+            if (bIndex === -1) return -1;
+            return aIndex - bIndex;
+          });
+          setMediaItems(orderedData);
+        } else {
+          setMediaItems(sortedData);
+        }
       } else {
         console.error('Failed to fetch media:', await res.text());
       }
@@ -79,7 +100,7 @@ const Admin: React.FC = () => {
         method: 'DELETE',
       });
       if (res.ok) {
-        await fetchMedia(); // Re-fetch media after deletion
+        await fetchMedia();
         alert('Media deleted successfully');
       } else {
         const errorText = await res.text();
@@ -92,7 +113,7 @@ const Admin: React.FC = () => {
     }
   };
 
-  const onDragEnd = (result: DropResult) => {
+  const onDragEnd = async (result: DropResult) => {
     if (!result.destination) return;
 
     const reorderedItems = Array.from(mediaItems);
@@ -100,6 +121,15 @@ const Admin: React.FC = () => {
     reorderedItems.splice(result.destination.index, 0, movedItem);
 
     setMediaItems(reorderedItems);
+
+    // Save the new order to Upstash KV
+    const newOrder = reorderedItems.map(item => item.id);
+    try {
+      await redis.set('media-order', newOrder);
+    } catch (error) {
+      console.error('Error saving order:', error);
+      alert('Failed to save new order');
+    }
   };
 
   if (!isLoggedIn) {
