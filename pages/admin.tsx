@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
+import Header from '../components/Header';
 
 type MediaItem = {
   id: string;
@@ -30,7 +31,6 @@ const Admin: React.FC = () => {
           return;
         }
 
-        // Fetch the saved order from Redis
         let order: string[] = [];
         try {
           const orderRes = await fetch('/api/order');
@@ -46,7 +46,6 @@ const Admin: React.FC = () => {
           console.warn('Falling back to mtime sort.');
         }
 
-        // Sort media items based on the saved order
         if (order && order.length > 0) {
           const orderedItems = [...data].sort((a: MediaItem, b: MediaItem) => {
             const aIndex = order.indexOf(a.id);
@@ -193,6 +192,7 @@ const Admin: React.FC = () => {
   if (!isLoggedIn) {
     return (
       <div className="max-w-[1080px] mx-auto py-5 px-4 sm:px-6 lg:px-8">
+        <Header />
         <h1 className="text-2xl font-bold text-white mb-4">Admin Login</h1>
         <form onSubmit={handleLogin} className="space-y-4">
           <input
@@ -206,11 +206,6 @@ const Admin: React.FC = () => {
             Login
           </button>
         </form>
-        <Link href="/">
-          <button className="mt-4 px-4 py-2 bg-black text-white border border-white rounded">
-            Back to Feed
-          </button>
-        </Link>
       </div>
     );
   }
@@ -219,14 +214,7 @@ const Admin: React.FC = () => {
 
   return (
     <div className="max-w-[1080px] mx-auto py-5 px-4 sm:px-6 lg:px-8">
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold text-white">Admin Dashboard</h1>
-        <Link href="/">
-          <button className="px-4 py-2 bg-black text-white border border-white rounded">
-            Back to Feed
-          </button>
-        </Link>
-      </div>
+      <Header />
       <label className="block w-full mb-4">
         <input
           type="file"
