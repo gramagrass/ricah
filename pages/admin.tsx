@@ -1,3 +1,4 @@
+// pages/admin.tsx
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
@@ -28,11 +29,26 @@ const Admin: React.FC = () => {
           setMediaItems([]);
           return;
         }
-        const sortedData = data.sort((a: MediaItem, b: MediaItem) =>
-          new Date(b.mtime).getTime() - new Date(a.mtime).getTime()
-        );
-        console.log('Sorted data by mtime:', sortedData);
-        setMediaItems(sortedData);
+
+        // Fetch the saved order from Redis
+        const orderRes = await fetch('/api/order');
+        const { order } = await orderRes.json();
+        console.log('Fetched order:', order);
+
+        // Sort media items based on the saved order
+        if (order && order.length > 0) {
+          const orderedItems = [...data].sort((a: MediaItem, b: MediaItem) => {
+            const aIndex = order.indexOf(a.id);
+            const bIndex = order.indexOf(b.id);
+            return aIndex - bIndex;
+          });
+          setMediaItems(orderedItems);
+        } else {
+          const sortedData = data.sort((a: MediaItem, b: MediaItem) =>
+            new Date(b.mtime).getTime() - new Date(a.mtime).getTime()
+          );
+          setMediaItems(sortedData);
+        }
       } else {
         const errorText = await res.text();
         console.error('Failed to fetch media:', errorText);
@@ -113,6 +129,24 @@ const Admin: React.FC = () => {
     reorderedItems.splice(result.destination.index, 0, movedItem);
 
     setMediaItems(reorderedItems);
+
+    // Save the new order to Redis
+    const order = reorderedItems.map((item) => item.id);
+    try {
+      const res = await fetch('/api/order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order }),
+      });
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error('Failed to save order:', errorText);
+        alert('Failed to save order');
+      }
+    } catch (error) {
+      console.error('Error saving order:', error);
+      alert('Error saving order');
+    }
   };
 
   if (!isLoggedIn) {
