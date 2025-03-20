@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import MediaPost from './MediaPost';
 import Link from 'next/link';
+import Header from './Header';
 
 type MediaItem = {
   id: string;
@@ -11,11 +12,11 @@ type MediaItem = {
   mtime: string;
 };
 
-type SortOption = 'date' | 'random' | 'custom';
+type SortOption = 'date' | 'random';
 
 const Feed: React.FC = () => {
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
-  const [sortOption, setSortOption] = useState<SortOption>('custom');
+  const [sortOption, setSortOption] = useState<SortOption>('date');
   const [randomizedItems, setRandomizedItems] = useState<MediaItem[]>([]);
 
   useEffect(() => {
@@ -78,52 +79,14 @@ const Feed: React.FC = () => {
 
   const sortedMediaItems =
     sortOption === 'date'
-      ? [...mediaItems].sort((a, b) => new Date(b.mtime).getTime() - new Date(a.mtime).getTime())
+      ? [...mediaItems]
       : sortOption === 'random'
       ? randomizedItems
       : mediaItems;
 
   return (
     <div className="max-w-[1080px] mx-auto py-5 px-4 sm:px-6 lg:px-8">
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold text-white">Ricah</h1>
-        <div className="space-x-2">
-          <button
-            onClick={() => setSortOption('custom')}
-            className={`px-3 py-1 rounded ${
-              sortOption === 'custom' ? 'bg-white text-black' : 'bg-black text-white border border-white'
-            }`}
-          >
-            Custom
-          </button>
-          <button
-            onClick={() => setSortOption('date')}
-            className={`px-3 py-1 rounded ${
-              sortOption === 'date' ? 'bg-white text-black' : 'bg-black text-white border border-white'
-            }`}
-          >
-            Reciente
-          </button>
-          <button
-            onClick={handleRandomClick}
-            className={`px-3 py-1 rounded ${
-              sortOption === 'random' ? 'bg-white text-black' : 'bg-black text-white border border-white'
-            }`}
-          >
-            Random
-          </button>
-          <Link href="/about">
-            <button className="px-3 py-1 rounded bg-black text-white border border-white">
-              Info
-            </button>
-          </Link>
-          <Link href="/admin">
-            <button className="px-3 py-1 rounded bg-black text-white border border-white">
-              Admin
-            </button>
-          </Link>
-        </div>
-      </div>
+      <Header />
       <div>
         {sortedMediaItems.length === 0 ? (
           <p className="text-white">No media items available.</p>
@@ -131,9 +94,20 @@ const Feed: React.FC = () => {
           sortedMediaItems.map((item) => (
             <div key={item.id}>
               <MediaPost src={item.src} type={item.type} alt={item.name} />
+              <p className="text-white text-sm">{item.src}</p>
             </div>
           ))
         )}
+      </div>
+      <div className="space-x-2 mt-4">
+        <button
+          onClick={handleRandomClick}
+          className={`px-3 py-1 rounded ${
+            sortOption === 'random' ? 'bg-white text-black' : 'bg-black text-white border border-white'
+          }`}
+        >
+          Random
+        </button>
       </div>
     </div>
   );
