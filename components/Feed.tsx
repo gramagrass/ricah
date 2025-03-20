@@ -85,7 +85,7 @@ const Feed: React.FC = () => {
       : mediaItems;
 
   return (
-    <div className="w-screen px-0">
+    <div className="w-full">
       <div className="max-w-[1080px] mx-auto py-5 px-4 sm:px-6 lg:px-8">
         <Header />
       </div>
