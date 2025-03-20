@@ -14,6 +14,7 @@
     "formidable": "^2.1.2",
     "framer-motion": "^10.18.0",
     "next": "15.2.3",
+    "node-fetch": "^3.3.2", // Added
     "react": "^18.2.0",
     "react-beautiful-dnd": "^13.1.1",
     "react-dom": "^18.2.0"
