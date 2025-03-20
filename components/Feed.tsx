@@ -131,7 +131,7 @@ const Feed: React.FC = () => {
           sortedMediaItems.map((item) => (
             <div key={item.id}>
               <MediaPost src={item.src} type={item.type} alt={item.name} />
-              <p className="text-white text-sm">{item.src}</p>
+              <!--p className="text-white text-sm">{item.src}</p-->
             </div>
           ))
         )}
