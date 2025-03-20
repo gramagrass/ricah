@@ -1,13 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
-import { Redis } from '@upstash/redis';
-
-// Initialize Upstash Redis client using KV_* variables
-const redis = new Redis({
-  url: process.env.KV_REST_API_URL!,
-  token: process.env.KV_REST_API_TOKEN!,
-});
 
 type MediaItem = {
   id: string;
@@ -39,24 +32,7 @@ const Admin: React.FC = () => {
           new Date(b.mtime).getTime() - new Date(a.mtime).getTime()
         );
         console.log('Sorted data by mtime:', sortedData);
-        // Fetch the custom order from Upstash KV
-        console.log('Fetching order from Upstash KV...');
-        const order: string[] | null = await redis.get('media-order');
-        console.log('Order fetched:', order);
-        if (order) {
-          const orderedData = [...sortedData].sort((a, b) => {
-            const aIndex = order.indexOf(a.id);
-            const bIndex = order.indexOf(b.id);
-            if (aIndex === -1 && bIndex === -1) return 0;
-            if (aIndex === -1) return 1;
-            if (bIndex === -1) return -1;
-            return aIndex - bIndex;
-          });
-          console.log('Media items after custom order:', orderedData);
-          setMediaItems(orderedData);
-        } else {
-          setMediaItems(sortedData);
-        }
+        setMediaItems(sortedData);
       } else {
         const errorText = await res.text();
         console.error('Failed to fetch media:', errorText);
@@ -137,15 +113,6 @@ const Admin: React.FC = () => {
     reorderedItems.splice(result.destination.index, 0, movedItem);
 
     setMediaItems(reorderedItems);
-
-    // Save the new order to Upstash KV
-    const newOrder = reorderedItems.map(item => item.id);
-    try {
-      await redis.set('media-order', newOrder);
-    } catch (error) {
-      console.error('Error saving order:', error);
-      alert('Failed to save new order');
-    }
   };
 
   if (!isLoggedIn) {
