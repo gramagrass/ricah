@@ -3,10 +3,10 @@ import Link from 'next/link';
 import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
 import { Redis } from '@upstash/redis';
 
-// Initialize Upstash Redis client
+// Initialize Upstash Redis client using KV_* variables
 const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN,
+  url: process.env.KV_REST_API_URL!,
+  token: process.env.KV_REST_API_TOKEN!,
 });
 
 type MediaItem = {
@@ -24,14 +24,20 @@ const Admin: React.FC = () => {
 
   const fetchMedia = async () => {
     try {
+      console.log('Fetching media from /api/media...');
       const res = await fetch('/api/media');
+      console.log('Fetch response status:', res.status);
       if (res.ok) {
         const data = await res.json();
+        console.log('Media data fetched:', data);
         const sortedData = data.sort((a: MediaItem, b: MediaItem) =>
           new Date(b.mtime).getTime() - new Date(a.mtime).getTime()
         );
+        console.log('Sorted data by mtime:', sortedData);
         // Fetch the custom order from Upstash KV
+        console.log('Fetching order from Upstash KV...');
         const order: string[] | null = await redis.get('media-order');
+        console.log('Order fetched:', order);
         if (order) {
           const orderedData = [...sortedData].sort((a, b) => {
             const aIndex = order.indexOf(a.id);
@@ -41,12 +47,14 @@ const Admin: React.FC = () => {
             if (bIndex === -1) return -1;
             return aIndex - bIndex;
           });
+          console.log('Media items after custom order:', orderedData);
           setMediaItems(orderedData);
         } else {
           setMediaItems(sortedData);
         }
       } else {
-        console.error('Failed to fetch media:', await res.text());
+        const errorText = await res.text();
+        console.error('Failed to fetch media:', errorText);
       }
     } catch (error) {
       console.error('Error fetching media:', error);
