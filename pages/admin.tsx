@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 
 type MediaItem = {
@@ -14,44 +14,50 @@ const Admin: React.FC = () => {
   const [password, setPassword] = useState('');
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
 
-  // Simple login check (replace with real auth later)
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (password === 'admin123') { // Temporary hardcoded password
-      setIsLoggedIn(true);
-      fetchMedia(); // Fetch media after login
-    } else {
-      alert('Incorrect password');
-    }
-  };
-
-  // Fetch existing media
+  // Fetch media on mount and after upload
   const fetchMedia = async () => {
     try {
       const res = await fetch('/api/media');
-      const data = await res.json();
-      setMediaItems(data);
+      if (res.ok) {
+        const data = await res.json();
+        setMediaItems(data);
+      } else {
+        console.error('Failed to fetch media:', await res.text());
+      }
     } catch (error) {
       console.error('Error fetching media:', error);
     }
   };
 
-  // Handle file upload (placeholder - implement API endpoint later)
+  useEffect(() => {
+    if (isLoggedIn) {
+      fetchMedia(); // Fetch media when logged in
+    }
+  }, [isLoggedIn]);
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password === 'admin123') {
+      setIsLoggedIn(true);
+    } else {
+      alert('Incorrect password');
+    }
+  };
+
   const handleAddMedia = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-  
+
     const formData = new FormData();
     formData.append('media', file);
-  
+
     try {
       const res = await fetch('/api/upload', {
         method: 'POST',
         body: formData,
       });
       if (res.ok) {
-        const newMedia = await res.json();
-        setMediaItems((prev) => [...prev, newMedia]);
+        await fetchMedia(); // Re-fetch media after upload
         alert('Media uploaded successfully');
       } else {
         const errorText = await res.text();
