@@ -31,9 +31,20 @@ const Admin: React.FC = () => {
         }
 
         // Fetch the saved order from Redis
-        const orderRes = await fetch('/api/order');
-        const { order } = await orderRes.json();
-        console.log('Fetched order:', order);
+        let order: string[] = [];
+        try {
+          const orderRes = await fetch('/api/order');
+          if (orderRes.ok) {
+            const orderData = await orderRes.json();
+            order = orderData.order || [];
+            console.log('Fetched order:', order);
+          } else {
+            console.warn('Failed to fetch order, falling back to mtime sort.');
+          }
+        } catch (error) {
+          console.error('Error fetching order:', error);
+          console.warn('Falling back to mtime sort.');
+        }
 
         // Sort media items based on the saved order
         if (order && order.length > 0) {
@@ -90,14 +101,20 @@ const Admin: React.FC = () => {
       });
       if (res.ok) {
         await fetchMedia();
-        const orderRes = await fetch('/api/order');
-        const { order } = await orderRes.json();
-        const newOrder = [...(order || []), mediaItems[mediaItems.length - 1]?.id].filter(Boolean);
-        await fetch('/api/order', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ order: newOrder }),
-        });
+        try {
+          const orderRes = await fetch('/api/order');
+          if (orderRes.ok) {
+            const { order } = await orderRes.json();
+            const newOrder = [...(order || []), mediaItems[mediaItems.length - 1]?.id].filter(Boolean);
+            await fetch('/api/order', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ order: newOrder }),
+            });
+          }
+        } catch (error) {
+          console.error('Error updating order after upload:', error);
+        }
         alert('Media uploaded successfully');
       } else {
         const errorText = await res.text();
@@ -117,16 +134,22 @@ const Admin: React.FC = () => {
       });
       if (res.ok) {
         await fetchMedia();
-        const deletedItem = mediaItems.find((item) => item.src === url);
+        const deletedItem = mediaItems.find((item) => item.src.includes(url));
         if (deletedItem) {
-          const orderRes = await fetch('/api/order');
-          const { order } = await orderRes.json();
-          const newOrder = (order || []).filter((id: string) => id !== deletedItem.id);
-          await fetch('/api/order', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ order: newOrder }),
-          });
+          try {
+            const orderRes = await fetch('/api/order');
+            if (orderRes.ok) {
+              const { order } = await orderRes.json();
+              const newOrder = (order || []).filter((id: string) => id !== deletedItem.id);
+              await fetch('/api/order', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ order: newOrder }),
+              });
+            }
+          } catch (error) {
+            console.error('Error updating order after delete:', error);
+          }
         }
         alert('Media deleted successfully');
       } else {
@@ -243,7 +266,7 @@ const Admin: React.FC = () => {
                               className="w-full h-auto object-cover"
                               onError={(e) => console.error(`Failed to load image: ${item.src}`, e)}
                             />
-                            <p className="text-white text-sm mt-1">{item.src}</p> {/* Debug: Show the src URL */}
+                            <p className="text-white text-sm mt-1">{item.src}</p>
                           </>
                         ) : (
                           <video src={item.src} controls muted className="w-full h-auto object-cover" />
