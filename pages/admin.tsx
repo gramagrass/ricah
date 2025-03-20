@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
 
 type MediaItem = {
   id: string;
@@ -14,13 +15,15 @@ const Admin: React.FC = () => {
   const [password, setPassword] = useState('');
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
 
-  // Fetch media on mount and after upload
   const fetchMedia = async () => {
     try {
       const res = await fetch('/api/media');
       if (res.ok) {
         const data = await res.json();
-        setMediaItems(data);
+        const sortedData = data.sort((a: MediaItem, b: MediaItem) =>
+          new Date(b.mtime).getTime() - new Date(a.mtime).getTime()
+        );
+        setMediaItems(sortedData);
       } else {
         console.error('Failed to fetch media:', await res.text());
       }
@@ -31,7 +34,7 @@ const Admin: React.FC = () => {
 
   useEffect(() => {
     if (isLoggedIn) {
-      fetchMedia(); // Fetch media when logged in
+      fetchMedia();
     }
   }, [isLoggedIn]);
 
@@ -57,7 +60,7 @@ const Admin: React.FC = () => {
         body: formData,
       });
       if (res.ok) {
-        await fetchMedia(); // Re-fetch media after upload
+        await fetchMedia();
         alert('Media uploaded successfully');
       } else {
         const errorText = await res.text();
@@ -68,6 +71,35 @@ const Admin: React.FC = () => {
       console.error('Upload error:', error);
       alert('Upload error');
     }
+  };
+
+  const handleDelete = async (url: string) => {
+    try {
+      const res = await fetch(`/api/delete?url=${encodeURIComponent(url)}`, {
+        method: 'DELETE',
+      });
+      if (res.ok) {
+        await fetchMedia(); // Re-fetch media after deletion
+        alert('Media deleted successfully');
+      } else {
+        const errorText = await res.text();
+        console.error('Delete response:', errorText);
+        alert('Delete failed');
+      }
+    } catch (error) {
+      console.error('Delete error:', error);
+      alert('Delete error');
+    }
+  };
+
+  const onDragEnd = (result: DropResult) => {
+    if (!result.destination) return;
+
+    const reorderedItems = Array.from(mediaItems);
+    const [movedItem] = reorderedItems.splice(result.source.index, 1);
+    reorderedItems.splice(result.destination.index, 0, movedItem);
+
+    setMediaItems(reorderedItems);
   };
 
   if (!isLoggedIn) {
@@ -116,18 +148,44 @@ const Admin: React.FC = () => {
           Add New Media
         </span>
       </label>
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-        {mediaItems.map((item) => (
-          <div key={item.id} className="bg-black">
-            {item.type === 'image' ? (
-              <img src={item.src} alt={item.name} className="w-full h-auto object-cover" />
-            ) : (
-              <video src={item.src} controls muted className="w-full h-auto object-cover" />
-            )}
-            <p className="text-white text-sm mt-1">{item.name}</p>
-          </div>
-        ))}
-      </div>
+      <DragDropContext onDragEnd={onDragEnd}>
+        <Droppable droppableId="media-grid" direction="horizontal">
+          {(provided) => (
+            <div
+              className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4"
+              {...provided.droppableProps}
+              ref={provided.innerRef}
+            >
+              {mediaItems.map((item, index) => (
+                <Draggable key={item.id} draggableId={item.id} index={index}>
+                  {(provided) => (
+                    <div
+                      ref={provided.innerRef}
+                      {...provided.draggableProps}
+                      {...provided.dragHandleProps}
+                      className="bg-black relative"
+                    >
+                      {item.type === 'image' ? (
+                        <img src={item.src} alt={item.name} className="w-full h-auto object-cover" />
+                      ) : (
+                        <video src={item.src} controls muted className="w-full h-auto object-cover" />
+                      )}
+                      <p className="text-white text-sm mt-1">{item.name}</p>
+                      <button
+                        onClick={() => handleDelete(item.src)}
+                        className="absolute top-2 right-2 px-2 py-1 bg-red-500 text-white rounded"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  )}
+                </Draggable>
+              ))}
+              {provided.placeholder}
+            </div>
+          )}
+        </Droppable>
+      </DragDropContext>
     </div>
   );
 };
