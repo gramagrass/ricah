@@ -18,3 +18,14 @@ export const ToolIcon: React.FC<{ className?: string }> = ({ className }) => (
     />
   </svg>
 );
+
+export const ArrowLeftIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <path
+      d="M15 19l-7-7 7-7"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
