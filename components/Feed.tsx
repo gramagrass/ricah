@@ -85,11 +85,11 @@ const Feed: React.FC = () => {
       : mediaItems;
 
   return (
-    <div className="w-full">
-      <div className="max-w-[1080px] mx-auto py-5 px-4 sm:px-6 lg:px-8">
+    <div className="py-5 px-0 sm:px-4">
+      <div className="max-w-[1080px] mx-auto px-4 sm:px-6 lg:px-8">
         <Header onRandomClick={handleRandomClick} isRandomActive={sortOption === 'random'} />
       </div>
-      <div className="w-full">
+      <div className="w-full px-0">
         {sortedMediaItems.length === 0 ? (
           <p className="text-white text-center">No media items available.</p>
         ) : (
