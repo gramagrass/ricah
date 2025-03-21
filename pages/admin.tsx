@@ -213,7 +213,7 @@ const Admin: React.FC = () => {
   console.log('Rendering admin grid with mediaItems:', mediaItems);
 
   return (
-    <div className="w-screen px-0">
+    <div className="w-full">
       <div className="max-w-[1080px] mx-auto py-5 px-4 sm:px-6 lg:px-8">
         <Header />
         <label className="block w-full mb-4">
@@ -232,12 +232,12 @@ const Admin: React.FC = () => {
         <Droppable droppableId="media-grid" direction="horizontal">
           {(provided) => (
             <div
-              className="grid grid-cols-2 gap-4 w-full max-w-[1080px] mx-auto px-4 sm:px-6 lg:px-8"
+              className="grid grid-cols-3 gap-4 w-full max-w-[1080px] mx-auto px-4 sm:px-6 lg:px-8"
               {...provided.droppableProps}
               ref={provided.innerRef}
             >
               {mediaItems.length === 0 ? (
-                <p className="text-white text-center col-span-2">No media items available.</p>
+                <p className="text-white text-center col-span-3">No media items available.</p>
               ) : (
                 mediaItems.map((item, index) => (
                   <Draggable key={item.id} draggableId={item.id} index={index}>
