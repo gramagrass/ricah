@@ -87,7 +87,7 @@ const Feed: React.FC = () => {
   return (
     <div className="w-full">
       <div className="max-w-[1080px] mx-auto py-5 px-4 sm:px-6 lg:px-8">
-        <Header />
+        <Header onRandomClick={handleRandomClick} isRandomActive={sortOption === 'random'} />
       </div>
       <div className="w-full">
         {sortedMediaItems.length === 0 ? (
@@ -99,18 +99,6 @@ const Feed: React.FC = () => {
             </div>
           ))
         )}
-      </div>
-      <div className="max-w-[1080px] mx-auto py-5 px-4 sm:px-6 lg:px-8">
-        <div className="space-x-2 mt-4">
-          <button
-            onClick={handleRandomClick}
-            className={`px-3 py-1 rounded ${
-              sortOption === 'random' ? 'bg-white text-black' : 'bg-black text-white border border-white'
-            }`}
-          >
-            Random
-          </button>
-        </div>
       </div>
     </div>
   );
