@@ -37,9 +37,9 @@ button.active {
   color: #000;
 }
 
-/* Remove global SVG stroke override, let text-* classes control the color */
+/* Ensure SVGs use the parent's text color */
 svg {
-  stroke: currentColor;
+  stroke: currentColor !important;
 }
 
 /* Fix for Delete button in Admin */
