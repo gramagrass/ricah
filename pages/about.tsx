@@ -15,7 +15,7 @@ const About: React.FC = () => {
   }, []); // Empty dependency array ensures this runs only on initial render
 
   return (
-    <div className="py-5 px-0 sm:px-4">
+    <div className="py-5 px-0">
       <div className="max-w-[1080px] mx-auto px-4 sm:px-6 lg:px-8">
         <Header />
         <div className="pt-6">
@@ -25,11 +25,11 @@ const About: React.FC = () => {
         </div>
       </div>
       {randomImage && (
-        <div className="w-full px-0">
+        <div className="w-full sm:-mx-4">
           <img
             src={randomImage}
             alt="Random Ricah Image"
-            className="w-full max-w-[1080px] mx-auto h-auto object-contain sm:w-full sm:max-w-none"
+            className="w-full max-w-[1080px] mx-auto h-auto object-contain sm:w-screen sm:max-w-none sm:mx-0"
           />
         </div>
       )}
