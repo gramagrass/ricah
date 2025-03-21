@@ -11,10 +11,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     let mediaItems: MediaItem[];
     if (isFilesystem) {
-      console.log('Using filesystem storage...');
       await fs.mkdir(uploadDir, { recursive: true });
       const files = await fs.readdir(uploadDir);
-      console.log('Files in uploadDir:', files);
       mediaItems = await Promise.all(
         files.map(async (file, index) => {
           const filePath = path.join(uploadDir, file);
@@ -30,7 +28,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         })
       );
     } else {
-      console.log('Using Vercel Blob storage...');
       if (!process.env.BLOB_READ_WRITE_TOKEN) {
         throw new Error('BLOB_READ_WRITE_TOKEN is not set. Please configure it in environment variables.');
       }
@@ -43,9 +40,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         console.log('No blobs found in Vercel Blob store.');
         return res.status(200).json([]);
       }
-      mediaItems = blobs.map((blob, index) => ({
+      // Filter out blobs in the 'assets' subfolder
+      const filteredBlobs = blobs.filter(blob => !blob.pathname.startsWith('assets/'));
+      mediaItems = filteredBlobs.map((blob, index) => ({
         id: `${index}-${blob.pathname}`,
-        src: `/api/proxy-image?url=${encodeURIComponent(blob.url)}`, // Use the proxy endpoint
+        src: blob.url,
         type: blob.pathname.match(/\.(jpg|jpeg|png|gif)$/i) ? 'image' : 'video',
         name: blob.pathname,
         mtime: new Date(blob.uploadedAt).toISOString(),
