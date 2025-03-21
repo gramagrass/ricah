@@ -11,7 +11,7 @@ type MediaPostProps = {
 const MediaPost: React.FC<MediaPostProps> = ({ src, type, alt }) => {
   return (
     <motion.div
-      className="bg-black w-full max-w-[1080px] mx-auto sm:w-screen sm:max-w-none"
+      className="bg-black w-screen max-w-none sm:w-full sm:max-w-[1080px] sm:mx-auto"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
