@@ -22,7 +22,7 @@ const Header: React.FC<HeaderProps> = ({ onRandomClick, isRandomActive }) => {
     <div className="flex justify-between items-center mb-4">
       <Link href="/">
         <img
-          src="https://0fuqq7uksetsgrwn.public.blob.vercel-storage.com/ricahlogo.png"
+          src="https://0fuqq7uksetsgrwn.public.blob.vercel-storage.com/assets/ricahlogo.png"
           alt="Ricah Logo"
           className="h-8 w-auto cursor-pointer"
         />
@@ -42,7 +42,7 @@ const Header: React.FC<HeaderProps> = ({ onRandomClick, isRandomActive }) => {
             onClick={handleBackClick}
             className="p-2 rounded bg-black text-white border border-white h-9 flex items-center"
           >
-            <ArrowLeftIcon className="w-5 h-5" />
+            <ArrowLeftIcon className="w-5 h-5 text-white" />
           </button>
         )}
         <Link href="/about">
@@ -60,7 +60,7 @@ const Header: React.FC<HeaderProps> = ({ onRandomClick, isRandomActive }) => {
               isActive('/admin') ? 'bg-white text-black' : 'bg-black text-white border border-white'
             }`}
           >
-            <ToolIcon className={`w-5 h-5 ${isActive('/admin') ? 'text-black' : 'text-white'}`} />
+            <ToolIcon className={`w-5 h-5 ${isActive('/admin') ? 'text-black' : 'text-white'}`} />}
           </button>
         </Link>
       </div>
