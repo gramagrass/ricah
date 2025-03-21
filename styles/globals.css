@@ -42,6 +42,16 @@ svg {
   stroke: currentColor !important;
 }
 
+/* Force SVG stroke color when highlighted */
+button.text-black svg {
+  stroke: #000 !important;
+}
+
+/* Force SVG stroke color when not highlighted */
+button.text-white svg {
+  stroke: #fff !important;
+}
+
 /* Fix for Delete button in Admin */
 .bg-red-500 {
   background-color: #333 !important; /* Dark gray */
