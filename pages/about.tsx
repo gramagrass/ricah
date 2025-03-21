@@ -29,7 +29,7 @@ const About: React.FC = () => {
           <img
             src={randomImage}
             alt="Random Ricah Image"
-            className="w-full max-w-[1080px] mx-auto h-auto object-contain sm:w-screen sm:max-w-none sm:mx-0"
+            className="w-full h-auto object-contain sm:w-screen sm:-mx-4 md:w-full md:max-w-[1080px] md:mx-auto"
           />
         </div>
       )}
