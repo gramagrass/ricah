@@ -60,7 +60,7 @@ const Header: React.FC<HeaderProps> = ({ onRandomClick, isRandomActive }) => {
               isActive('/admin') ? 'bg-white text-black' : 'bg-black text-white border border-white'
             }`}
           >
-            <ToolIcon className={`w-5 h-5 ${isActive('/admin') ? 'text-black' : 'text-white'}`} />}
+            <ToolIcon className={`w-5 h-5 ${isActive('/admin') ? 'text-black' : 'text-white'}`} />
           </button>
         </Link>
       </div>
