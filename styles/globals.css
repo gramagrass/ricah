@@ -37,7 +37,18 @@ button.active {
   color: #000;
 }
 
-/* Ensure SVGs (icons) are white */
+/* Ensure SVGs (icons) are white by default */
 svg {
   stroke: #fff;
+}
+
+/* Override SVG stroke color when highlighted */
+button.active svg {
+  stroke: #000;
+}
+
+/* Fix for Delete button in Admin */
+.bg-red-500 {
+  background-color: #333 !important; /* Dark gray */
+  border: 1px solid #fff !important;
 }
