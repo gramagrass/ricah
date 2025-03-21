@@ -1,24 +1,32 @@
 // pages/api/order.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
-import Redis from 'ioredis';
+import { Redis } from '@upstash/redis';
 
-const redis = new Redis(process.env.REDIS_URL, {
-  password: process.env.REDIS_TOKEN,
-});
+let redis: Redis | null = null;
 
-console.log('Redis client initialized successfully');
-// Test the connection
-await redis.set('test_key', 'test_value');
-const testValue = await redis.get('test_key');
-console.log('Redis test operation successful, value:', testValue);
+try {
+  if (process.env.REDIS_URL && process.env.REDIS_TOKEN) {
+    redis = new Redis({
+      url: process.env.REDIS_URL,
+      token: process.env.REDIS_TOKEN,
+    });
+  } else {
+    console.warn('Redis environment variables (REDIS_URL or REDIS_TOKEN) are not set. Order persistence will be disabled.');
+  }
+} catch (error) {
+  console.error('Failed to initialize Redis:', error);
+  redis = null;
+}
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (!redis) {
+    return res.status(503).json({ message: 'Redis is not available. Order persistence is disabled.' });
+  }
+
   if (req.method === 'POST') {
     try {
       const { order }: { order: string[] } = req.body;
-      console.log('Saving order:', order);
       await redis.set('media_order', JSON.stringify(order));
-      console.log('Order saved successfully');
       res.status(200).json({ message: 'Order saved successfully' });
     } catch (error) {
       console.error('Error saving order:', error);
@@ -27,8 +35,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   } else if (req.method === 'GET') {
     try {
       const order = await redis.get('media_order');
-      console.log('Fetched order:', order);
-      res.status(200).json({ order: order ? JSON.parse(order) : [] });
+      res.status(200).json({ order: order ? JSON.parse(order as string) : [] });
     } catch (error) {
       console.error('Error fetching order:', error);
       res.status(500).json({ message: 'Failed to fetch order' });
