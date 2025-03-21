@@ -25,11 +25,11 @@ const About: React.FC = () => {
         </div>
       </div>
       {randomImage && (
-        <div className="w-full sm:-mx-4">
+        <div className="w-full sm:-mx-4 md:mx-0">
           <img
             src={randomImage}
             alt="Random Ricah Image"
-            className="w-full h-auto object-contain sm:w-screen sm:-mx-4 md:w-full md:max-w-[1080px] md:mx-auto"
+            className="w-full max-w-[1080px] mx-auto h-auto object-contain sm:w-screen sm:max-w-none sm:-mx-4 md:w-full md:max-w-[1080px] md:mx-auto"
           />
         </div>
       )}
