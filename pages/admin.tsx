@@ -213,8 +213,8 @@ const Admin: React.FC = () => {
   console.log('Rendering admin grid with mediaItems:', mediaItems);
 
   return (
-    <div className="w-full">
-      <div className="max-w-[1080px] mx-auto py-5 px-4 sm:px-6 lg:px-8">
+    <div className="py-5 px-0 sm:px-4">
+      <div className="max-w-[1080px] mx-auto px-4 sm:px-6 lg:px-8">
         <Header />
         <label className="block w-full mb-4">
           <input
