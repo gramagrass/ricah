@@ -42,7 +42,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     mediaJson.order = mediaJson.order.filter((id) => id !== mediaItem.id);
 
     // Write the updated media.json back to Vercel Blob
-    await put('media.json', JSON.stringify(mediaJson, null, 2), {
+    const mediaJsonContent = JSON.stringify(mediaJson, null, 2);
+    const mediaJsonStream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(Buffer.from(mediaJsonContent));
+        controller.close();
+      },
+    });
+    await put('media.json', mediaJsonStream, {
       access: 'public',
       token: process.env.BLOB_READ_WRITE_TOKEN,
     });
