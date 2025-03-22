@@ -16,6 +16,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const form = new formidable.IncomingForm({
     keepExtensions: true,
     multiples: true,
+    fileWriteStreamHandler: undefined, // Keep files in memory
   });
 
   try {
@@ -46,25 +47,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       originalFilename: mediaFile.originalFilename,
       mimetype: mediaFile.mimetype,
       size: mediaFile.size,
+      hasBuf: !!mediaFile._buf,
+      bufLength: mediaFile._buf ? mediaFile._buf.length : 'N/A',
     });
 
-    // Since _buf might not be reliable, try reading the file content directly
-    const mediaFileContent = await new Promise<Buffer>((resolve, reject) => {
-      const chunks: Buffer[] = [];
-      const stream = mediaFile.toStream();
-      stream.on('data', (chunk) => {
-        chunks.push(Buffer.from(chunk));
-      });
-      stream.on('end', () => {
-        resolve(Buffer.concat(chunks));
-      });
-      stream.on('error', (err) => {
-        reject(err);
-      });
-    });
-
+    // Use mediaFile._buf to get the file content
+    const mediaFileContent = mediaFile._buf;
     if (!mediaFileContent || mediaFileContent.length === 0) {
-      console.error('Media file content is empty after reading');
+      console.error('Media file content is empty');
       return res.status(400).json({ error: 'Media file content is empty' });
     }
     console.log('Media file content size:', mediaFileContent.length);
@@ -94,26 +84,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Handle linked media (PDF or URL)
     if (linkedMediaFile) {
-      const linkedMediaFileContent = await new Promise<Buffer>((resolve, reject) => {
-        const chunks: Buffer[] = [];
-        const stream = linkedMediaFile.toStream();
-        stream.on('data', (chunk) => {
-          chunks.push(Buffer.from(chunk));
-        });
-        stream.on('end', () => {
-          resolve(Buffer.concat(chunks));
-        });
-        stream.on('error', (err) => {
-          reject(err);
-        });
-      });
-
+      const linkedMediaFileContent = linkedMediaFile._buf;
       if (!linkedMediaFileContent || linkedMediaFileContent.length === 0) {
-        console.error('Linked media file content is empty after reading');
+        console.error('Linked media file content is empty');
         return res.status(400).json({ error: 'Linked media file content is empty' });
       }
       console.log('Linked media file content size:', linkedMediaFileContent.length);
-
       const linkedMediaStream = new ReadableStream({
         start(controller) {
           controller.enqueue(linkedMediaFileContent);
