@@ -1,4 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
+import { list } from '@vercel/blob';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
@@ -6,31 +7,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const mediaJsonResponse = await fetch(process.env.MEDIA_JSON_BLOB_URL!, {
-      headers: {
-        Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}`,
-      },
+    const { blobs } = await list({
+      token: process.env.BLOB_READ_WRITE_TOKEN,
     });
-    if (!mediaJsonResponse.ok) {
-      throw new Error('Failed to fetch media.json');
-    }
-    const mediaJson: MediaJson = await mediaJsonResponse.json();
-    return res.status(200).json(mediaJson.mediaItems);
+
+    const mediaItems = blobs.map((blob) => ({
+      id: blob.pathname,
+      src: blob.url,
+      type: blob.pathname.endsWith('.mp4') || blob.pathname.endsWith('.webm') ? 'video' : 'image', // Basic type detection
+      name: blob.pathname,
+      mtime: new Date(blob.uploadedAt).toISOString(),
+    }));
+
+    return res.status(200).json(mediaItems);
   } catch (error) {
-    console.error('Error fetching media items:', error);
-    return res.status(500).json({ error: 'Error fetching media items' });
+    console.error('Error listing media items:', error);
+    return res.status(500).json({ error: 'Error listing media items' });
   }
-}
-
-interface MediaItem {
-  id: string;
-  src: string;
-  type: 'image' | 'video';
-  name: string;
-  mtime: string;
-}
-
-interface MediaJson {
-  mediaItems: MediaItem[];
-  order: string[];
 }
