@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
 import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
 import Header from '../components/Header';
 
@@ -9,20 +8,13 @@ type MediaItem = {
   type: 'image' | 'video';
   name: string;
   mtime: string;
-  linkedMedia?: {
-    type: 'pdf' | 'link';
-    url: string;
-  };
 };
 
 const Admin: React.FC = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [password, setPassword] = useState('');
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
-  const [linkedMediaType, setLinkedMediaType] = useState<'pdf' | 'link' | 'none'>('none');
-  const [linkedMediaUrl, setLinkedMediaUrl] = useState<string>('');
   const [mediaFile, setMediaFile] = useState<File | null>(null);
-  const [linkedMediaFile, setLinkedMediaFile] = useState<File | null>(null);
 
   const fetchMedia = async () => {
     try {
@@ -106,12 +98,6 @@ const Admin: React.FC = () => {
     const formData = new FormData();
     formData.append('media', mediaFile);
 
-    if (linkedMediaType === 'pdf' && linkedMediaFile) {
-      formData.append('linkedMedia', linkedMediaFile);
-    } else if (linkedMediaType === 'link' && linkedMediaUrl) {
-      formData.append('linkedMediaUrl', linkedMediaUrl);
-    }
-
     try {
       const res = await fetch('/api/upload', {
         method: 'POST',
@@ -134,9 +120,6 @@ const Admin: React.FC = () => {
           console.error('Admin - Error updating order after upload:', error);
         }
         setMediaFile(null);
-        setLinkedMediaType('none');
-        setLinkedMediaUrl('');
-        setLinkedMediaFile(null);
         alert('Media uploaded successfully');
       } else {
         const errorText = await res.text();
@@ -258,43 +241,6 @@ const Admin: React.FC = () => {
               />
             </label>
             {mediaFile && <p className="text-white">Selected: {mediaFile.name}</p>}
-          </div>
-          <div className="space-y-2">
-            <label className="text-white">Link to:</label>
-            <select
-              value={linkedMediaType}
-              onChange={(e) => setLinkedMediaType(e.target.value as 'pdf' | 'link' | 'none')}
-              className="w-full px-3 py-2 bg-black text-white border border-white rounded"
-            >
-              <option value="none">None</option>
-              <option value="pdf">PDF</option>
-              <option value="link">Link URL</option>
-            </select>
-            {linkedMediaType === 'pdf' && (
-              <>
-                <input
-                  type="file"
-                  accept="application/pdf"
-                  name="linkedMedia"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0] || null;
-                    console.log('Selected linked media file:', file);
-                    setLinkedMediaFile(file);
-                  }}
-                  className="w-full px-3 py-2 bg-black text-white border border-white rounded"
-                />
-                {linkedMediaFile && <p className="text-white">Selected: {linkedMediaFile.name}</p>}
-              </>
-            )}
-            {linkedMediaType === 'link' && (
-              <input
-                type="text"
-                value={linkedMediaUrl}
-                onChange={(e) => setLinkedMediaUrl(e.target.value)}
-                placeholder="Enter URL (e.g., https://example.com)"
-                className="w-full px-3 py-2 bg-black text-white border border-white rounded"
-              />
-            )}
           </div>
           <button
             type="submit"
