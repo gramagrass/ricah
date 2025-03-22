@@ -1,4 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
+import { get, BlobGetResult } from '@vercel/blob';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
@@ -6,14 +7,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const { Redis } = await import('@upstash/redis');
-    const redis = new Redis({
-      url: process.env.UPSTASH_REDIS_REST_URL!,
-      token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+    const mediaJsonResponse: BlobGetResult = await get(process.env.MEDIA_JSON_BLOB_URL!, {
+      token: process.env.BLOB_READ_WRITE_TOKEN,
     });
-
-    const mediaItems = (await redis.get<MediaItem[]>('media-items')) || [];
-    return res.status(200).json(mediaItems);
+    const mediaJson: MediaJson = await mediaJsonResponse.json();
+    return res.status(200).json(mediaJson.mediaItems);
   } catch (error) {
     console.error('Error fetching media items:', error);
     return res.status(500).json({ error: 'Error fetching media items' });
@@ -30,4 +28,9 @@ interface MediaItem {
     type: 'pdf' | 'link';
     url: string;
   };
+}
+
+interface MediaJson {
+  mediaItems: MediaItem[];
+  order: string[];
 }
