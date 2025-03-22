@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { put } from '@vercel/blob';
-import { parseFormData } from 'parse-multipart-data';
+import parseMultipart from 'parse-multipart-data';
 
 export const config = {
   api: {
@@ -29,7 +29,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'Invalid Content-Type header' });
     }
 
-    const parts = parseFormData(body, boundary);
+    const parts = parseMultipart(body, boundary);
     console.log('Parsed form parts:', parts);
 
     let mediaFileContent: Buffer | null = null;
