@@ -6,7 +6,7 @@ declare module 'parse-multipart-data' {
     data: Buffer;
   }
 
-  function parseFormData(body: Buffer, boundary: string): Part[];
+  function parseMultipart(body: Buffer, boundary: string): Part[];
 
-  export { parseFormData };
+  export default parseMultipart;
 }
