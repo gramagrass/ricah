@@ -50,19 +50,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 }
 
-interface MediaJson {
-  mediaItems: MediaItem[];
-  order: string[];
-}
-
 interface MediaItem {
   id: string;
   src: string;
   type: 'image' | 'video';
   name: string;
   mtime: string;
-  linkedMedia?: {
-    type: 'pdf' | 'link';
-    url: string;
-  };
+}
+
+interface MediaJson {
+  mediaItems: MediaItem[];
+  order: string[];
 }
