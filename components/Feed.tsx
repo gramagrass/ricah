@@ -20,7 +20,10 @@ const Feed: React.FC = () => {
       try {
         const res = await fetch('/api/media');
         console.log('Feed - Fetch /api/media response status:', res.status);
-        const data = await res.json();
+        if (!res.ok) {
+          throw new Error('Failed to fetch media items');
+        }
+        const data: MediaItem[] = await res.json();
         console.log('Feed - Media data fetched:', data);
 
         if (!data || data.length === 0) {
@@ -30,13 +33,13 @@ const Feed: React.FC = () => {
         }
 
         // Remove duplicates by id (in case the API returns duplicates)
-        const uniqueData = Array.from(
+        const uniqueData: MediaItem[] = Array.from(
           new Map(data.map((item: MediaItem) => [item.id, item])).values()
         );
         console.log('Feed - Unique media items:', uniqueData);
 
         // Sort by mtime (newest first) for the initial view
-        const sortedData = uniqueData.sort((a: MediaItem, b: MediaItem) =>
+        const sortedData: MediaItem[] = uniqueData.sort((a: MediaItem, b: MediaItem) =>
           new Date(b.mtime).getTime() - new Date(a.mtime).getTime()
         );
         setMediaItems(sortedData);
