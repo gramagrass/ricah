@@ -103,7 +103,6 @@ const Admin: React.FC = () => {
     const formData = new FormData();
     formData.append('media', mediaFile);
 
-    // If a PDF is selected as linked media, append it to the form data
     if (linkedMediaType === 'pdf' && linkedMediaFile) {
       formData.append('linkedMedia', linkedMediaFile);
     } else if (linkedMediaType === 'link' && linkedMediaUrl) {
@@ -131,7 +130,6 @@ const Admin: React.FC = () => {
         } catch (error) {
           console.error('Error updating order after upload:', error);
         }
-        // Reset all fields after upload
         setMediaFile(null);
         setLinkedMediaType('none');
         setLinkedMediaUrl('');
@@ -325,7 +323,9 @@ const Admin: React.FC = () => {
                           <video src={item.src} controls muted className="w-full h-auto object-contain" />
                         )}
                         <button
-                          onClick={() => handleDelete(item.src)}
+                          onClick={() => handleDelete(item.src
+
+)}
                           className="absolute top-2 right-2 px-2 py-1 bg-red-500 text-white rounded"
                         >
                           Delete
