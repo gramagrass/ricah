@@ -1,6 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { InfoIcon, ToolIcon } from './Icons';
 
 interface HeaderProps {
   onRandomClick?: () => void;
@@ -11,26 +12,20 @@ const Header: React.FC<HeaderProps> = ({ onRandomClick, isRandomActive = false }
   return (
     <header className="flex justify-between items-center mb-4">
       <Link href="/">
-        <h1 className="text-2xl font-bold text-white">Ricah</h1>
+        <Image
+          src="https://0fuqq7uksetsgrwn.public.blob.vercel-storage.com/assets/ricahlogo.png"
+          alt="Ricah Logo"
+          width={100} // Adjust width based on your logo's dimensions
+          height={40} // Adjust height based on your logo's dimensions
+          className="object-contain"
+        />
       </Link>
       <div className="flex space-x-4 items-center">
         <Link href="/info">
-          <Image
-            src="/assets/info-icon.png"
-            alt="Info"
-            width={24}
-            height={24}
-            className="hover:opacity-80"
-          />
+          <InfoIcon className="w-6 h-6 text-white hover:text-gray-300" />
         </Link>
         <Link href="/admin">
-          <Image
-            src="/assets/admin-icon.png"
-            alt="Admin"
-            width={24}
-            height={24}
-            className="hover:opacity-80"
-          />
+          <ToolIcon className="w-6 h-6 text-white hover:text-gray-300" />
         </Link>
         {onRandomClick && (
           <button
