@@ -1,7 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import formidable from 'formidable';
-
-import { put } from '@vercel/blob';
+import { put, get, BlobGetResult } from '@vercel/blob';
 
 export const config = {
   api: {
@@ -16,7 +15,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const form = new formidable.IncomingForm({
     keepExtensions: true,
-    // Keep files in memory instead of writing to disk
     fileWriteStreamHandler: undefined,
   });
 
@@ -35,10 +33,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     try {
-      // Since formidable keeps files in memory, mediaFile._buf should contain the file content
+      // Upload the main media file to Vercel Blob
       const mediaFileContent = mediaFile._buf || Buffer.from('');
-
-      // Upload the main media file (image or video) to Vercel Blob
       const mediaBlob = await put(mediaFile.originalFilename || 'unnamed', mediaFileContent, {
         access: 'public',
         token: process.env.BLOB_READ_WRITE_TOKEN,
@@ -55,32 +51,30 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       // Handle linked media (PDF or URL)
       if (linkedMediaFile) {
         const linkedMediaFileContent = linkedMediaFile._buf || Buffer.from('');
-        // Upload the PDF to Vercel Blob
         const pdfBlob = await put(linkedMediaFile.originalFilename || 'unnamed.pdf', linkedMediaFileContent, {
           access: 'public',
           token: process.env.BLOB_READ_WRITE_TOKEN,
         });
         mediaItem.linkedMedia = { type: 'pdf', url: pdfBlob.url };
       } else if (linkedMediaUrl) {
-        // Store the outbound link
         mediaItem.linkedMedia = { type: 'link', url: linkedMediaUrl };
       }
 
-      // Update the order in the database (using Upstash Redis)
-      const { Redis } = await import('@upstash/redis');
-      const redis = new Redis({
-        url: process.env.UPSTASH_REDIS_REST_URL!,
-        token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+      // Fetch the current media.json from Vercel Blob
+      const mediaJsonResponse: BlobGetResult = await get(process.env.MEDIA_JSON_BLOB_URL!, {
+        token: process.env.BLOB_READ_WRITE_TOKEN,
       });
+      const mediaJson: MediaJson = await mediaJsonResponse.json();
 
-      const order = (await redis.get<string[]>('media-order')) || [];
-      order.push(mediaItem.id);
-      await redis.set('media-order', order);
+      // Update the media items and order
+      mediaJson.mediaItems.push(mediaItem);
+      mediaJson.order.push(mediaItem.id);
 
-      // Store the media item metadata in Redis
-      const mediaItems = (await redis.get<MediaItem[]>('media-items')) || [];
-      mediaItems.push(mediaItem);
-      await redis.set('media-items', mediaItems);
+      // Write the updated media.json back to Vercel Blob
+      await put('media.json', JSON.stringify(mediaJson, null, 2), {
+        access: 'public',
+        token: process.env.BLOB_READ_WRITE_TOKEN,
+      });
 
       return res.status(200).json({ message: 'Media uploaded successfully', mediaItem });
     } catch (error) {
@@ -100,4 +94,9 @@ interface MediaItem {
     type: 'pdf' | 'link';
     url: string;
   };
+}
+
+interface MediaJson {
+  mediaItems: MediaItem[];
+  order: string[];
 }
