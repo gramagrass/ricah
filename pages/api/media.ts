@@ -14,7 +14,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const mediaItems = blobs.map((blob) => ({
       id: blob.pathname,
       src: blob.url,
-      type: blob.pathname.endsWith('.mp4') || blob.pathname.endsWith('.webm') ? 'video' : 'image', // Basic type detection
+      type: blob.pathname.endsWith('.mp4') || blob.pathname.endsWith('.webm') ? 'video' : 'image',
       name: blob.pathname,
       mtime: new Date(blob.uploadedAt).toISOString(),
     }));
