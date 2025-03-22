@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/router';
 import MediaPost from './MediaPost';
-import Link from 'next/link';
 import Header from './Header';
 
 type MediaItem = {
@@ -10,16 +8,11 @@ type MediaItem = {
   type: 'image' | 'video';
   name: string;
   mtime: string;
-  linkedMedia?: {
-    type: 'pdf' | 'link';
-    url: string;
-  };
 };
 
 type SortOption = 'date' | 'random';
 
 const Feed: React.FC = () => {
-  const router = useRouter();
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
   const [sortOption, setSortOption] = useState<SortOption>('date');
   const [randomizedItems, setRandomizedItems] = useState<MediaItem[]>([]);
@@ -28,22 +21,24 @@ const Feed: React.FC = () => {
     const fetchMedia = async () => {
       try {
         const res = await fetch('/api/media');
+        console.log('Feed - Fetch /api/media response status:', res.status);
         const data = await res.json();
         console.log('Feed - Media data fetched:', data);
 
         let order: string[] = [];
         try {
           const orderRes = await fetch('/api/order');
+          console.log('Feed - Fetch /api/order response status:', orderRes.status);
           if (orderRes.ok) {
             const orderData = await orderRes.json();
             order = orderData.order || [];
             console.log('Feed - Fetched order:', order);
           } else {
-            console.warn('Failed to fetch order, falling back to mtime sort.');
+            console.warn('Feed - Failed to fetch order, falling back to mtime sort.');
           }
         } catch (error) {
-          console.error('Error fetching order:', error);
-          console.warn('Falling back to mtime sort.');
+          console.error('Feed - Error fetching order:', error);
+          console.warn('Feed - Falling back to mtime sort.');
         }
 
         if (order && order.length > 0) {
@@ -53,15 +48,17 @@ const Feed: React.FC = () => {
             return aIndex - bIndex;
           });
           setMediaItems(orderedItems);
+          console.log('Feed - Ordered media items:', orderedItems);
         } else {
           const sortedData = data.sort((a: MediaItem, b: MediaItem) =>
             new Date(b.mtime).getTime() - new Date(a.mtime).getTime()
           );
           setMediaItems(sortedData);
+          console.log('Feed - Sorted media items by mtime:', sortedData);
         }
         setRandomizedItems(data);
       } catch (error) {
-        console.error('Error fetching media:', error);
+        console.error('Feed - Error fetching media:', error);
         setMediaItems([]);
       }
     };
@@ -82,16 +79,6 @@ const Feed: React.FC = () => {
     setRandomizedItems(shuffleArray(mediaItems));
   };
 
-  const handleMediaClick = (item: MediaItem) => {
-    if (item.linkedMedia) {
-      if (item.linkedMedia.type === 'pdf') {
-        router.push(`/pdf-viewer?url=${encodeURIComponent(item.linkedMedia.url)}`);
-      } else if (item.linkedMedia.type === 'link') {
-        window.open(item.linkedMedia.url, '_blank');
-      }
-    }
-  };
-
   const sortedMediaItems =
     sortOption === 'date'
       ? [...mediaItems]
@@ -109,11 +96,7 @@ const Feed: React.FC = () => {
           <p className="text-white text-center">No media items available.</p>
         ) : (
           sortedMediaItems.map((item) => (
-            <div
-              key={item.id}
-              onClick={() => handleMediaClick(item)}
-              className={item.linkedMedia ? 'cursor-pointer' : ''}
-            >
+            <div key={item.id}>
               <MediaPost src={item.src} type={item.type} alt={item.name} />
             </div>
           ))
