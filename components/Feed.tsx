@@ -85,10 +85,8 @@ const Feed: React.FC = () => {
   const handleMediaClick = (item: MediaItem) => {
     if (item.linkedMedia) {
       if (item.linkedMedia.type === 'pdf') {
-        // Navigate to a new page to display the PDF
         router.push(`/pdf-viewer?url=${encodeURIComponent(item.linkedMedia.url)}`);
       } else if (item.linkedMedia.type === 'link') {
-        // Open the outbound link in a new tab
         window.open(item.linkedMedia.url, '_blank');
       }
     }
