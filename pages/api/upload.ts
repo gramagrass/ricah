@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { put } from '@vercel/blob';
-import parseMultipart from 'parse-multipart-data';
+import formidable from 'formidable';
+import fs from 'fs/promises';
 
 export const config = {
   api: {
@@ -13,50 +14,49 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  const form = new formidable.IncomingForm({
+    keepExtensions: true,
+    multiples: true,
+  });
+
   try {
-    // Read the request body as a Buffer
-    const body = await new Promise<Buffer>((resolve, reject) => {
-      const chunks: Buffer[] = [];
-      req.on('data', (chunk) => chunks.push(chunk));
-      req.on('end', () => resolve(Buffer.concat(chunks)));
-      req.on('error', reject);
+    const { fields, files } = await new Promise<{ fields: formidable.Fields; files: formidable.Files }>((resolve, reject) => {
+      form.parse(req, (err, fields, files) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        resolve({ fields, files });
+      });
     });
 
-    // Parse the multipart form data
-    const boundary = req.headers['content-type']?.split('boundary=')[1];
-    if (!boundary) {
-      console.error('No boundary found in Content-Type header');
-      return res.status(400).json({ error: 'Invalid Content-Type header' });
+    console.log('Parsed fields:', fields);
+    console.log('Parsed files:', Object.keys(files));
+
+    const mediaFile = Array.isArray(files.media) ? files.media[0] : files.media;
+    const linkedMediaFile = Array.isArray(files.linkedMedia) ? files.linkedMedia[0] : files.linkedMedia;
+    const linkedMediaUrl = Array.isArray(fields.linkedMediaUrl) ? fields.linkedMediaUrl[0] : fields.linkedMediaUrl;
+
+    if (!mediaFile) {
+      console.error('No media file uploaded');
+      return res.status(400).json({ error: 'No media file uploaded' });
     }
 
-    const parts = parseMultipart(body, boundary);
-    console.log('Parsed form parts:', parts);
+    // Log media file details
+    console.log('Media file details:', {
+      originalFilename: mediaFile.originalFilename,
+      mimetype: mediaFile.mimetype,
+      size: mediaFile.size,
+      filepath: mediaFile.filepath,
+    });
 
-    let mediaFileContent: Buffer | null = null;
-    let mediaFileName: string | null = null;
-    let mediaFileType: string | null = null;
-    let linkedMediaFileContent: Buffer | null = null;
-    let linkedMediaFileName: string | null = null;
-    let linkedMediaUrl: string | null = null;
-
-    for (const part of parts) {
-      if (part.name === 'media' && part.data) {
-        mediaFileContent = part.data;
-        mediaFileName = part.filename || 'unnamed';
-        mediaFileType = part.type || 'application/octet-stream';
-      } else if (part.name === 'linkedMedia' && part.data) {
-        linkedMediaFileContent = part.data;
-        linkedMediaFileName = part.filename || 'unnamed.pdf';
-      } else if (part.name === 'linkedMediaUrl' && part.data) {
-        linkedMediaUrl = part.data.toString();
-      }
-    }
-
+    // Read the file content from the temporary filepath
+    const mediaFileContent = await fs.readFile(mediaFile.filepath);
     if (!mediaFileContent || mediaFileContent.length === 0) {
-      console.error('Media file content is empty');
+      console.error('Media file content is empty after reading');
       return res.status(400).json({ error: 'Media file content is empty' });
     }
-    console.log('Media file:', { name: mediaFileName, type: mediaFileType, size: mediaFileContent.length });
+    console.log('Media file content size:', mediaFileContent.length);
 
     // Convert Buffer to ReadableStream for Vercel Blob
     const mediaStream = new ReadableStream({
@@ -67,7 +67,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
     // Upload the main media file to Vercel Blob
-    const mediaBlob = await put(mediaFileName!, mediaStream, {
+    const mediaBlob = await put(mediaFile.originalFilename || 'unnamed', mediaStream, {
       access: 'public',
       token: process.env.BLOB_READ_WRITE_TOKEN,
     });
@@ -76,25 +76,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const mediaItem: MediaItem = {
       id: mediaBlob.pathname,
       src: mediaBlob.url,
-      type: mediaFileType?.includes('video') ? 'video' : 'image',
-      name: mediaFileName!,
+      type: mediaFile.mimetype?.includes('video') ? 'video' : 'image',
+      name: mediaFile.originalFilename || 'unnamed',
       mtime: new Date().toISOString(),
     };
 
     // Handle linked media (PDF or URL)
-    if (linkedMediaFileContent) {
-      if (linkedMediaFileContent.length === 0) {
-        console.error('Linked media file content is empty');
+    if (linkedMediaFile) {
+      const linkedMediaFileContent = await fs.readFile(linkedMediaFile.filepath);
+      if (!linkedMediaFileContent || linkedMediaFileContent.length === 0) {
+        console.error('Linked media file content is empty after reading');
         return res.status(400).json({ error: 'Linked media file content is empty' });
       }
-      console.log('Linked media file:', { name: linkedMediaFileName, size: linkedMediaFileContent.length });
+      console.log('Linked media file content size:', linkedMediaFileContent.length);
+
       const linkedMediaStream = new ReadableStream({
         start(controller) {
           controller.enqueue(linkedMediaFileContent);
           controller.close();
         },
       });
-      const pdfBlob = await put(linkedMediaFileName!, linkedMediaStream, {
+      const pdfBlob = await put(linkedMediaFile.originalFilename || 'unnamed.pdf', linkedMediaStream, {
         access: 'public',
         token: process.env.BLOB_READ_WRITE_TOKEN,
       });
