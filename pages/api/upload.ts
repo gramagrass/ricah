@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import formidable from 'formidable';
-import { BlobServiceClient } from '@vercel/blob';
+import { put } from '@vercel/blob';
 
 export const config = {
   api: {
@@ -28,45 +28,66 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'No media file uploaded' });
     }
 
-    const blobServiceClient = new BlobServiceClient(process.env.BLOB_SAS_URL!);
-    const containerClient = blobServiceClient.getContainerClient('assets');
+    try {
+      // Upload the main media file (image or video) to Vercel Blob
+      const mediaBlob = await put(mediaFile.originalFilename || 'unnamed', mediaFile.filepath, {
+        access: 'public',
+        token: process.env.BLOB_READ_WRITE_TOKEN,
+      });
 
-    // Upload the main media file (image or video)
-    const mediaBlobName = `${Date.now()}-${mediaFile.originalFilename}`;
-    const mediaBlockBlobClient = containerClient.getBlockBlobClient(mediaBlobName);
-    await mediaBlockBlobClient.uploadFile(mediaFile.filepath);
+      const mediaItem: MediaItem = {
+        id: mediaBlob.pathname,
+        src: mediaBlob.url,
+        type: mediaFile.mimetype?.includes('video') ? 'video' : 'image',
+        name: mediaFile.originalFilename || 'unnamed',
+        mtime: new Date().toISOString(),
+      };
 
-    const mediaItem: MediaItem = {
-      id: mediaBlobName,
-      src: mediaBlockBlobClient.url,
-      type: mediaFile.mimetype?.includes('video') ? 'video' : 'image',
-      name: mediaFile.originalFilename || 'unnamed',
-      mtime: new Date().toISOString(),
-    };
+      // Handle linked media (PDF or URL)
+      if (linkedMediaFile) {
+        // Upload the PDF to Vercel Blob
+        const pdfBlob = await put(linkedMediaFile.originalFilename || 'unnamed.pdf', linkedMediaFile.filepath, {
+          access: 'public',
+          token: process.env.BLOB_READ_WRITE_TOKEN,
+        });
+        mediaItem.linkedMedia = { type: 'pdf', url: pdfBlob.url };
+      } else if (linkedMediaUrl) {
+        // Store the outbound link
+        mediaItem.linkedMedia = { type: 'link', url: linkedMediaUrl };
+      }
 
-    // Handle linked media (PDF or URL)
-    if (linkedMediaFile) {
-      // Upload the PDF
-      const pdfBlobName = `${Date.now()}-${linkedMediaFile.originalFilename}`;
-      const pdfBlockBlobClient = containerClient.getBlockBlobClient(pdfBlobName);
-      await pdfBlockBlobClient.uploadFile(linkedMediaFile.filepath);
-      mediaItem.linkedMedia = { type: 'pdf', url: pdfBlockBlobClient.url };
-    } else if (linkedMediaUrl) {
-      // Store the outbound link
-      mediaItem.linkedMedia = { type: 'link', url: linkedMediaUrl };
+      // Update the order in the database (using Upstash Redis)
+      const { Redis } = await import('@upstash/redis');
+      const redis = new Redis({
+        url: process.env.UPSTASH_REDIS_REST_URL!,
+        token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+      });
+
+      const order = (await redis.get<string[]>('media-order')) || [];
+      order.push(mediaItem.id);
+      await redis.set('media-order', order);
+
+      // Store the media item metadata in Redis (optional, depending on your /api/media implementation)
+      const mediaItems = (await redis.get<MediaItem[]>('media-items')) || [];
+      mediaItems.push(mediaItem);
+      await redis.set('media-items', mediaItems);
+
+      return res.status(200).json({ message: 'Media uploaded successfully' });
+    } catch (error) {
+      console.error('Error uploading to Vercel Blob:', error);
+      return res.status(500).json({ error: 'Error uploading media' });
     }
-
-    // Update the order in the database (e.g., using Upstash Redis)
-    const { Redis } = await import('@upstash/redis');
-    const redis = new Redis({
-      url: process.env.UPSTASH_REDIS_REST_URL!,
-      token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-    });
-
-    const order = (await redis.get<string[]>('media-order')) || [];
-    order.push(mediaItem.id);
-    await redis.set('media-order', order);
-
-    return res.status(200).json({ message: 'Media uploaded successfully' });
   });
+}
+
+interface MediaItem {
+  id: string;
+  src: string;
+  type: 'image' | 'video';
+  name: string;
+  mtime: string;
+  linkedMedia?: {
+    type: 'pdf' | 'link';
+    url: string;
+  };
 }
