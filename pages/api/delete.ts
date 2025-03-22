@@ -32,11 +32,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Delete the media file from Vercel Blob
     await del(url, { token: process.env.BLOB_READ_WRITE_TOKEN });
 
-    // If the media item has a linked PDF, delete that too
-    if (mediaItem.linkedMedia && mediaItem.linkedMedia.type === 'pdf') {
-      await del(mediaItem.linkedMedia.url, { token: process.env.BLOB_READ_WRITE_TOKEN });
-    }
-
     // Remove the media item from media.json
     mediaJson.mediaItems = mediaJson.mediaItems.filter((item) => item.src !== url);
     mediaJson.order = mediaJson.order.filter((id) => id !== mediaItem.id);
@@ -61,19 +56,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 }
 
-interface MediaJson {
-  mediaItems: MediaItem[];
-  order: string[];
-}
-
 interface MediaItem {
   id: string;
   src: string;
   type: 'image' | 'video';
   name: string;
   mtime: string;
-  linkedMedia?: {
-    type: 'pdf' | 'link';
-    url: string;
-  };
+}
+
+interface MediaJson {
+  mediaItems: MediaItem[];
+  order: string[];
 }
