@@ -285,7 +285,7 @@ const Admin: React.FC = () => {
               ref={provided.innerRef}
             >
               {mediaItems.length === 0 ? (
-                <鬷 className="text-white text-center col-span-3">No media items available.</p>
+                <p className="text-white text-center col-span-3">No media items available.</p>
               ) : (
                 mediaItems.map((item, index) => (
                   <Draggable key={item.id} draggableId={item.id} index={index}>
