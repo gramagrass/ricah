@@ -11,7 +11,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       token: process.env.BLOB_READ_WRITE_TOKEN,
     });
 
-    const mediaItems = blobs.map((blob) => ({
+    // Filter out blobs in the "assets" subfolder
+    const mediaBlobs = blobs.filter((blob) => !blob.pathname.startsWith('assets/'));
+
+    const mediaItems = mediaBlobs.map((blob) => ({
       id: blob.pathname,
       src: blob.url,
       type: blob.pathname.endsWith('.mp4') || blob.pathname.endsWith('.webm') ? 'video' : 'image',
