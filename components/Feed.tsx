@@ -29,8 +29,14 @@ const Feed: React.FC = () => {
           return;
         }
 
+        // Remove duplicates by id (in case the API returns duplicates)
+        const uniqueData = Array.from(
+          new Map(data.map((item: MediaItem) => [item.id, item])).values()
+        );
+        console.log('Feed - Unique media items:', uniqueData);
+
         // Sort by mtime (newest first) for the initial view
-        const sortedData = data.sort((a: MediaItem, b: MediaItem) =>
+        const sortedData = uniqueData.sort((a: MediaItem, b: MediaItem) =>
           new Date(b.mtime).getTime() - new Date(a.mtime).getTime()
         );
         setMediaItems(sortedData);
@@ -55,8 +61,9 @@ const Feed: React.FC = () => {
   };
 
   const handleRandomClick = () => {
-    // Shuffle the items every time the button is clicked
-    setDisplayItems(shuffleArray(mediaItems));
+    const shuffledItems = shuffleArray(mediaItems);
+    console.log('Feed - Shuffled items:', shuffledItems);
+    setDisplayItems(shuffledItems);
     setIsRandomized(true);
   };
 
