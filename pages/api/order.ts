@@ -1,12 +1,17 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { get, put, BlobGetResult } from '@vercel/blob';
+import { put } from '@vercel/blob';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
     // Fetch the current media.json from Vercel Blob
-    const mediaJsonResponse: BlobGetResult = await get(process.env.MEDIA_JSON_BLOB_URL!, {
-      token: process.env.BLOB_READ_WRITE_TOKEN,
+    const mediaJsonResponse = await fetch(process.env.MEDIA_JSON_BLOB_URL!, {
+      headers: {
+        Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}`,
+      },
     });
+    if (!mediaJsonResponse.ok) {
+      throw new Error('Failed to fetch media.json');
+    }
     const mediaJson: MediaJson = await mediaJsonResponse.json();
 
     if (req.method === 'GET') {
