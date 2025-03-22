@@ -26,14 +26,14 @@ const Admin: React.FC = () => {
 
   const fetchMedia = async () => {
     try {
-      console.log('Fetching media from /api/media...');
+      console.log('Admin - Fetching media from /api/media...');
       const res = await fetch('/api/media');
-      console.log('Fetch response status:', res.status);
+      console.log('Admin - Fetch response status:', res.status);
       if (res.ok) {
         const data = await res.json();
-        console.log('Media data fetched:', data);
+        console.log('Admin - Media data fetched:', data);
         if (!data || data.length === 0) {
-          console.log('No media items returned from /api/media');
+          console.log('Admin - No media items returned from /api/media');
           setMediaItems([]);
           return;
         }
@@ -41,16 +41,17 @@ const Admin: React.FC = () => {
         let order: string[] = [];
         try {
           const orderRes = await fetch('/api/order');
+          console.log('Admin - Fetch /api/order response status:', orderRes.status);
           if (orderRes.ok) {
             const orderData = await orderRes.json();
             order = orderData.order || [];
-            console.log('Fetched order:', order);
+            console.log('Admin - Fetched order:', order);
           } else {
-            console.warn('Failed to fetch order, falling back to mtime sort.');
+            console.warn('Admin - Failed to fetch order, falling back to mtime sort.');
           }
         } catch (error) {
-          console.error('Error fetching order:', error);
-          console.warn('Falling back to mtime sort.');
+          console.error('Admin - Error fetching order:', error);
+          console.warn('Admin - Falling back to mtime sort.');
         }
 
         if (order && order.length > 0) {
@@ -60,25 +61,27 @@ const Admin: React.FC = () => {
             return aIndex - bIndex;
           });
           setMediaItems(orderedItems);
+          console.log('Admin - Ordered media items:', orderedItems);
         } else {
           const sortedData = data.sort((a: MediaItem, b: MediaItem) =>
             new Date(b.mtime).getTime() - new Date(a.mtime).getTime()
           );
           setMediaItems(sortedData);
+          console.log('Admin - Sorted media items by mtime:', sortedData);
         }
       } else {
         const errorText = await res.text();
-        console.error('Failed to fetch media:', errorText);
+        console.error('Admin - Failed to fetch media:', errorText);
         setMediaItems([]);
       }
     } catch (error) {
-      console.error('Error fetching media:', error);
+      console.error('Admin - Error fetching media:', error);
       setMediaItems([]);
     }
   };
 
   useEffect(() => {
-    console.log('isLoggedIn:', isLoggedIn);
+    console.log('Admin - isLoggedIn:', isLoggedIn);
     if (isLoggedIn) {
       fetchMedia();
     }
@@ -128,7 +131,7 @@ const Admin: React.FC = () => {
             });
           }
         } catch (error) {
-          console.error('Error updating order after upload:', error);
+          console.error('Admin - Error updating order after upload:', error);
         }
         setMediaFile(null);
         setLinkedMediaType('none');
@@ -137,11 +140,11 @@ const Admin: React.FC = () => {
         alert('Media uploaded successfully');
       } else {
         const errorText = await res.text();
-        console.error('Upload response:', errorText);
+        console.error('Admin - Upload response:', errorText);
         alert('Upload failed');
       }
     } catch (error) {
-      console.error('Upload error:', error);
+      console.error('Admin - Upload error:', error);
       alert('Upload error');
     }
   };
@@ -167,17 +170,17 @@ const Admin: React.FC = () => {
               });
             }
           } catch (error) {
-            console.error('Error updating order after delete:', error);
+            console.error('Admin - Error updating order after delete:', error);
           }
         }
         alert('Media deleted successfully');
       } else {
         const errorText = await res.text();
-        console.error('Delete response:', errorText);
+        console.error('Admin - Delete response:', errorText);
         alert('Delete failed');
       }
     } catch (error) {
-      console.error('Delete error:', error);
+      console.error('Admin - Delete error:', error);
       alert('Delete error');
     }
   };
@@ -200,11 +203,11 @@ const Admin: React.FC = () => {
       });
       if (!res.ok) {
         const errorText = await res.text();
-        console.error('Failed to save order:', errorText);
+        console.error('Admin - Failed to save order:', errorText);
         alert('Failed to save order');
       }
     } catch (error) {
-      console.error('Error saving order:', error);
+      console.error('Admin - Error saving order:', error);
       alert('Error saving order');
     }
   };
@@ -230,7 +233,7 @@ const Admin: React.FC = () => {
     );
   }
 
-  console.log('Rendering admin grid with mediaItems:', mediaItems);
+  console.log('Admin - Rendering admin grid with mediaItems:', mediaItems);
 
   return (
     <div className="py-5 px-0 sm:px-4">
@@ -245,7 +248,12 @@ const Admin: React.FC = () => {
               <input
                 type="file"
                 accept="image/*,video/*"
-                onChange={(e) => setMediaFile(e.target.files?.[0] || null)}
+                name="media"
+                onChange={(e) => {
+                  const file = e.target.files?.[0] || null;
+                  console.log('Selected media file:', file);
+                  setMediaFile(file);
+                }}
                 className="hidden"
               />
             </label>
@@ -267,7 +275,12 @@ const Admin: React.FC = () => {
                 <input
                   type="file"
                   accept="application/pdf"
-                  onChange={(e) => setLinkedMediaFile(e.target.files?.[0] || null)}
+                  name="linkedMedia"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0] || null;
+                    console.log('Selected linked media file:', file);
+                    setLinkedMediaFile(file);
+                  }}
                   className="w-full px-3 py-2 bg-black text-white border border-white rounded"
                 />
                 {linkedMediaFile && <p className="text-white">Selected: {linkedMediaFile.name}</p>}
@@ -323,9 +336,7 @@ const Admin: React.FC = () => {
                           <video src={item.src} controls muted className="w-full h-auto object-contain" />
                         )}
                         <button
-                          onClick={() => handleDelete(item.src
-
-)}
+                          onClick={() => handleDelete(item.src)}
                           className="absolute top-2 right-2 px-2 py-1 bg-red-500 text-white rounded"
                         >
                           Delete
