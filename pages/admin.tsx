@@ -21,6 +21,7 @@ const Admin: React.FC = () => {
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
   const [linkedMediaType, setLinkedMediaType] = useState<'pdf' | 'link' | 'none'>('none');
   const [linkedMediaUrl, setLinkedMediaUrl] = useState<string>('');
+  const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [linkedMediaFile, setLinkedMediaFile] = useState<File | null>(null);
 
   const fetchMedia = async () => {
@@ -92,12 +93,15 @@ const Admin: React.FC = () => {
     }
   };
 
-  const handleAddMedia = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleAddMedia = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!mediaFile) {
+      alert('Please select a media file to upload.');
+      return;
+    }
 
     const formData = new FormData();
-    formData.append('media', file);
+    formData.append('media', mediaFile);
 
     // If a PDF is selected as linked media, append it to the form data
     if (linkedMediaType === 'pdf' && linkedMediaFile) {
@@ -127,7 +131,8 @@ const Admin: React.FC = () => {
         } catch (error) {
           console.error('Error updating order after upload:', error);
         }
-        // Reset linked media fields after upload
+        // Reset all fields after upload
+        setMediaFile(null);
         setLinkedMediaType('none');
         setLinkedMediaUrl('');
         setLinkedMediaFile(null);
@@ -233,18 +238,21 @@ const Admin: React.FC = () => {
     <div className="py-5 px-0 sm:px-4">
       <div className="max-w-[1080px] mx-auto px-4 sm:px-6 lg:px-8">
         <Header />
-        <div className="mb-4">
-          <label className="block w-full mb-2">
-            <input
-              type="file"
-              accept="image/*,video/*"
-              onChange={handleAddMedia}
-              className="hidden"
-            />
-            <span className="block w-full px-4 py-2 bg-white text-black text-center rounded cursor-pointer">
-              Add New Media
-            </span>
-          </label>
+        <form onSubmit={handleAddMedia} className="mb-4 space-y-4">
+          <div>
+            <label className="block w-full mb-2">
+              <span className="block w-full px-4 py-2 bg-white text-black text-center rounded cursor-pointer">
+                Select Media File (Image/Video)
+              </span>
+              <input
+                type="file"
+                accept="image/*,video/*"
+                onChange={(e) => setMediaFile(e.target.files?.[0] || null)}
+                className="hidden"
+              />
+            </label>
+            {mediaFile && <p className="text-white">Selected: {mediaFile.name}</p>}
+          </div>
           <div className="space-y-2">
             <label className="text-white">Link to:</label>
             <select
@@ -254,15 +262,18 @@ const Admin: React.FC = () => {
             >
               <option value="none">None</option>
               <option value="pdf">PDF</option>
-              <option value="link">Outbound Link</option>
+              <option value="link">Link URL</option>
             </select>
             {linkedMediaType === 'pdf' && (
-              <input
-                type="file"
-                accept="application/pdf"
-                onChange={(e) => setLinkedMediaFile(e.target.files?.[0] || null)}
-                className="w-full px-3 py-2 bg-black text-white border border-white rounded"
-              />
+              <>
+                <input
+                  type="file"
+                  accept="application/pdf"
+                  onChange={(e) => setLinkedMediaFile(e.target.files?.[0] || null)}
+                  className="w-full px-3 py-2 bg-black text-white border border-white rounded"
+                />
+                {linkedMediaFile && <p className="text-white">Selected: {linkedMediaFile.name}</p>}
+              </>
             )}
             {linkedMediaType === 'link' && (
               <input
@@ -274,7 +285,14 @@ const Admin: React.FC = () => {
               />
             )}
           </div>
-        </div>
+          <button
+            type="submit"
+            className="px-4 py-2 bg-white text-black rounded"
+            disabled={!mediaFile}
+          >
+            Upload Media
+          </button>
+        </form>
       </div>
       <DragDropContext onDragEnd={onDragEnd}>
         <Droppable droppableId="media-grid" direction="horizontal">
