@@ -26,7 +26,6 @@ const Feed: React.FC = () => {
           return;
         }
 
-        // Sort by mtime (newest first)
         const sortedData = data.sort((a: MediaItem, b: MediaItem) =>
           new Date(b.mtime).getTime() - new Date(a.mtime).getTime()
         );
