@@ -1,4 +1,3 @@
-// pages/admin.tsx
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
@@ -10,12 +9,19 @@ type MediaItem = {
   type: 'image' | 'video';
   name: string;
   mtime: string;
+  linkedMedia?: {
+    type: 'pdf' | 'link';
+    url: string;
+  };
 };
 
 const Admin: React.FC = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [password, setPassword] = useState('');
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
+  const [linkedMediaType, setLinkedMediaType] = useState<'pdf' | 'link' | 'none'>('none');
+  const [linkedMediaUrl, setLinkedMediaUrl] = useState<string>('');
+  const [linkedMediaFile, setLinkedMediaFile] = useState<File | null>(null);
 
   const fetchMedia = async () => {
     try {
@@ -93,6 +99,13 @@ const Admin: React.FC = () => {
     const formData = new FormData();
     formData.append('media', file);
 
+    // If a PDF is selected as linked media, append it to the form data
+    if (linkedMediaType === 'pdf' && linkedMediaFile) {
+      formData.append('linkedMedia', linkedMediaFile);
+    } else if (linkedMediaType === 'link' && linkedMediaUrl) {
+      formData.append('linkedMediaUrl', linkedMediaUrl);
+    }
+
     try {
       const res = await fetch('/api/upload', {
         method: 'POST',
@@ -114,6 +127,10 @@ const Admin: React.FC = () => {
         } catch (error) {
           console.error('Error updating order after upload:', error);
         }
+        // Reset linked media fields after upload
+        setLinkedMediaType('none');
+        setLinkedMediaUrl('');
+        setLinkedMediaFile(null);
         alert('Media uploaded successfully');
       } else {
         const errorText = await res.text();
@@ -216,17 +233,48 @@ const Admin: React.FC = () => {
     <div className="py-5 px-0 sm:px-4">
       <div className="max-w-[1080px] mx-auto px-4 sm:px-6 lg:px-8">
         <Header />
-        <label className="block w-full mb-4">
-          <input
-            type="file"
-            accept="image/*,video/*"
-            onChange={handleAddMedia}
-            className="hidden"
-          />
-          <span className="block w-full px-4 py-2 bg-white text-black text-center rounded cursor-pointer">
-            Add New Media
-          </span>
-        </label>
+        <div className="mb-4">
+          <label className="block w-full mb-2">
+            <input
+              type="file"
+              accept="image/*,video/*"
+              onChange={handleAddMedia}
+              className="hidden"
+            />
+            <span className="block w-full px-4 py-2 bg-white text-black text-center rounded cursor-pointer">
+              Add New Media
+            </span>
+          </label>
+          <div className="space-y-2">
+            <label className="text-white">Link to:</label>
+            <select
+              value={linkedMediaType}
+              onChange={(e) => setLinkedMediaType(e.target.value as 'pdf' | 'link' | 'none')}
+              className="w-full px-3 py-2 bg-black text-white border border-white rounded"
+            >
+              <option value="none">None</option>
+              <option value="pdf">PDF</option>
+              <option value="link">Outbound Link</option>
+            </select>
+            {linkedMediaType === 'pdf' && (
+              <input
+                type="file"
+                accept="application/pdf"
+                onChange={(e) => setLinkedMediaFile(e.target.files?.[0] || null)}
+                className="w-full px-3 py-2 bg-black text-white border border-white rounded"
+              />
+            )}
+            {linkedMediaType === 'link' && (
+              <input
+                type="text"
+                value={linkedMediaUrl}
+                onChange={(e) => setLinkedMediaUrl(e.target.value)}
+                placeholder="Enter URL (e.g., https://example.com)"
+                className="w-full px-3 py-2 bg-black text-white border border-white rounded"
+              />
+            )}
+          </div>
+        </div>
       </div>
       <DragDropContext onDragEnd={onDragEnd}>
         <Droppable droppableId="media-grid" direction="horizontal">
@@ -237,7 +285,7 @@ const Admin: React.FC = () => {
               ref={provided.innerRef}
             >
               {mediaItems.length === 0 ? (
-                <p className="text-white text-center col-span-3">No media items available.</p>
+                <鬷 className="text-white text-center col-span-3">No media items available.</p>
               ) : (
                 mediaItems.map((item, index) => (
                   <Draggable key={item.id} draggableId={item.id} index={index}>

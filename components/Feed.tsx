@@ -1,5 +1,5 @@
-// components/Feed.tsx
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
 import MediaPost from './MediaPost';
 import Link from 'next/link';
 import Header from './Header';
@@ -10,11 +10,16 @@ type MediaItem = {
   type: 'image' | 'video';
   name: string;
   mtime: string;
+  linkedMedia?: {
+    type: 'pdf' | 'link';
+    url: string;
+  };
 };
 
 type SortOption = 'date' | 'random';
 
 const Feed: React.FC = () => {
+  const router = useRouter();
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
   const [sortOption, setSortOption] = useState<SortOption>('date');
   const [randomizedItems, setRandomizedItems] = useState<MediaItem[]>([]);
@@ -77,6 +82,18 @@ const Feed: React.FC = () => {
     setRandomizedItems(shuffleArray(mediaItems));
   };
 
+  const handleMediaClick = (item: MediaItem) => {
+    if (item.linkedMedia) {
+      if (item.linkedMedia.type === 'pdf') {
+        // Navigate to a new page to display the PDF
+        router.push(`/pdf-viewer?url=${encodeURIComponent(item.linkedMedia.url)}`);
+      } else if (item.linkedMedia.type === 'link') {
+        // Open the outbound link in a new tab
+        window.open(item.linkedMedia.url, '_blank');
+      }
+    }
+  };
+
   const sortedMediaItems =
     sortOption === 'date'
       ? [...mediaItems]
@@ -94,7 +111,11 @@ const Feed: React.FC = () => {
           <p className="text-white text-center">No media items available.</p>
         ) : (
           sortedMediaItems.map((item) => (
-            <div key={item.id}>
+            <div
+              key={item.id}
+              onClick={() => handleMediaClick(item)}
+              className={item.linkedMedia ? 'cursor-pointer' : ''}
+            >
               <MediaPost src={item.src} type={item.type} alt={item.name} />
             </div>
           ))

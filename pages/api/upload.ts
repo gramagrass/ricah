@@ -1,8 +1,6 @@
-import type { NextApiRequest, NextApiResponse } from 'next';
+import { NextApiRequest, NextApiResponse } from 'next';
 import formidable from 'formidable';
-import fs from 'fs/promises';
-import path from 'path';
-import { put } from '@vercel/blob';
+import { BlobServiceClient } from '@vercel/blob';
 
 export const config = {
   api: {
@@ -12,74 +10,63 @@ export const config = {
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
-    return res.status(405).json({ message: 'Method not allowed' });
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const isFilesystem = process.env.STORAGE_METHOD === 'filesystem';
-  const uploadDir = path.join(process.cwd(), 'public/uploads');
-
-  const form = new formidable.IncomingForm({
-    keepExtensions: true,
-    uploadDir: isFilesystem ? uploadDir : undefined,
-    maxFileSize: 10 * 1024 * 1024, // 10MB limit
-  } as any);
-
-  try {
-    const [fields, files] = await new Promise<[formidable.Fields, formidable.Files]>((resolve, reject) => {
-      form.parse(req, (err, fields, files) => {
-        if (err) {
-          console.error('Form parse error:', err);
-          reject(err);
-        } else {
-          resolve([fields, files]);
-        }
-      });
-    });
-
-    const file = Array.isArray(files.media) ? files.media[0] : files.media;
-    if (!file) {
-      return res.status(400).json({ message: 'No file uploaded' });
+  const form = new formidable.IncomingForm();
+  form.parse(req, async (err, fields, files) => {
+    if (err) {
+      console.error('Error parsing form:', err);
+      return res.status(500).json({ error: 'Error parsing form' });
     }
 
-    let src: string;
-    if (isFilesystem) {
-      // Local filesystem storage
-      await fs.mkdir(uploadDir, { recursive: true });
-      src = `/uploads/${file.newFilename}`;
-    } else {
-      // Vercel Blob storage
-      if (!process.env.BLOB_READ_WRITE_TOKEN) {
-        throw new Error('BLOB_READ_WRITE_TOKEN is not set. Please configure it in environment variables.');
-      }
-      const fileBuffer = await fs.readFile(file.filepath);
-      const blob = await put(file.originalFilename || file.newFilename, fileBuffer, {
-        access: 'public',
-        token: process.env.BLOB_READ_WRITE_TOKEN,
-      });
-      src = blob.url;
+    const mediaFile = files.media as formidable.File;
+    const linkedMediaFile = files.linkedMedia as formidable.File;
+    const linkedMediaUrl = fields.linkedMediaUrl as string;
+
+    if (!mediaFile) {
+      return res.status(400).json({ error: 'No media file uploaded' });
     }
 
-    const newMedia: MediaItem = {
-      id: Date.now().toString(),
-      src,
-      type: file.mimetype?.startsWith('image') ? 'image' : 'video',
-      name: file.originalFilename || 'Untitled',
+    const blobServiceClient = new BlobServiceClient(process.env.BLOB_SAS_URL!);
+    const containerClient = blobServiceClient.getContainerClient('assets');
+
+    // Upload the main media file (image or video)
+    const mediaBlobName = `${Date.now()}-${mediaFile.originalFilename}`;
+    const mediaBlockBlobClient = containerClient.getBlockBlobClient(mediaBlobName);
+    await mediaBlockBlobClient.uploadFile(mediaFile.filepath);
+
+    const mediaItem: MediaItem = {
+      id: mediaBlobName,
+      src: mediaBlockBlobClient.url,
+      type: mediaFile.mimetype?.includes('video') ? 'video' : 'image',
+      name: mediaFile.originalFilename || 'unnamed',
       mtime: new Date().toISOString(),
     };
 
-    console.log('Uploaded file:', newMedia);
-    res.status(200).json(newMedia);
-  } catch (error) {
-    console.error('Upload error:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Upload failed';
-    res.status(500).json({ message: errorMessage });
-  }
-}
+    // Handle linked media (PDF or URL)
+    if (linkedMediaFile) {
+      // Upload the PDF
+      const pdfBlobName = `${Date.now()}-${linkedMediaFile.originalFilename}`;
+      const pdfBlockBlobClient = containerClient.getBlockBlobClient(pdfBlobName);
+      await pdfBlockBlobClient.uploadFile(linkedMediaFile.filepath);
+      mediaItem.linkedMedia = { type: 'pdf', url: pdfBlockBlobClient.url };
+    } else if (linkedMediaUrl) {
+      // Store the outbound link
+      mediaItem.linkedMedia = { type: 'link', url: linkedMediaUrl };
+    }
 
-type MediaItem = {
-  id: string;
-  src: string;
-  type: 'image' | 'video';
-  name: string;
-  mtime: string;
-};
+    // Update the order in the database (e.g., using Upstash Redis)
+    const { Redis } = await import('@upstash/redis');
+    const redis = new Redis({
+      url: process.env.UPSTASH_REDIS_REST_URL!,
+      token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+    });
+
+    const order = (await redis.get<string[]>('media-order')) || [];
+    order.push(mediaItem.id);
+    await redis.set('media-order', order);
+
+    return res.status(200).json({ message: 'Media uploaded successfully' });
+  });
+}
