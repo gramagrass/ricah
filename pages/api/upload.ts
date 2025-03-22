@@ -34,8 +34,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.log('Parsed files:', Object.keys(files));
 
     const mediaFile = Array.isArray(files.media) ? files.media[0] : files.media;
-    const linkedMediaFile = Array.isArray(files.linkedMedia) ? files.linkedMedia[0] : files.linkedMedia;
-    const linkedMediaUrl = Array.isArray(fields.linkedMediaUrl) ? fields.linkedMediaUrl[0] : fields.linkedMediaUrl;
 
     if (!mediaFile) {
       console.error('No media file uploaded');
@@ -81,33 +79,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       mtime: new Date().toISOString(),
     };
 
-    // Handle linked media (PDF or URL)
-    if (linkedMediaFile) {
-      const linkedMediaFileContent = await fs.readFile(linkedMediaFile.filepath);
-      if (!linkedMediaFileContent || linkedMediaFileContent.length === 0) {
-        console.error('Linked media file content is empty after reading');
-        return res.status(400).json({ error: 'Linked media file content is empty' });
-      }
-      console.log('Linked media file content size:', linkedMediaFileContent.length);
-
-      const linkedMediaStream = new ReadableStream({
-        start(controller) {
-          controller.enqueue(linkedMediaFileContent);
-          controller.close();
-        },
-      });
-      const pdfBlob = await put(linkedMediaFile.originalFilename || 'unnamed.pdf', linkedMediaStream, {
-        access: 'public',
-        token: process.env.BLOB_READ_WRITE_TOKEN,
-      });
-      console.log('Linked media file uploaded to:', pdfBlob.url);
-      mediaItem.linkedMedia = { type: 'pdf', url: pdfBlob.url };
-    } else if (linkedMediaUrl) {
-      console.log('Using linked media URL:', linkedMediaUrl);
-      mediaItem.linkedMedia = { type: 'link', url: linkedMediaUrl };
-    }
-
-    console.log('Fetching media.json from:', process.env.MEDIA_JSON_BLOB_URL);
+    // Fetch the current media.json from Vercel Blob
     const mediaJsonResponse = await fetch(process.env.MEDIA_JSON_BLOB_URL!, {
       headers: {
         Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}`,
@@ -125,7 +97,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     mediaJson.order.push(mediaItem.id);
     console.log('Updated media.json:', mediaJson);
 
-    console.log('Writing updated media.json to Vercel Blob');
+    // Write the updated media.json back to Vercel Blob
     const mediaJsonContent = JSON.stringify(mediaJson, null, 2);
     const mediaJsonStream = new ReadableStream({
       start(controller) {
@@ -152,10 +124,6 @@ interface MediaItem {
   type: 'image' | 'video';
   name: string;
   mtime: string;
-  linkedMedia?: {
-    type: 'pdf' | 'link';
-    url: string;
-  };
 }
 
 interface MediaJson {
