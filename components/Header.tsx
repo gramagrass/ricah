@@ -1,5 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 interface HeaderProps {
   onRandomClick?: () => void;
@@ -12,9 +13,24 @@ const Header: React.FC<HeaderProps> = ({ onRandomClick, isRandomActive = false }
       <Link href="/">
         <h1 className="text-2xl font-bold text-white">Ricah</h1>
       </Link>
-      <div className="flex space-x-4">
+      <div className="flex space-x-4 items-center">
+        <Link href="/info">
+          <Image
+            src="/assets/info-icon.png"
+            alt="Info"
+            width={24}
+            height={24}
+            className="hover:opacity-80"
+          />
+        </Link>
         <Link href="/admin">
-          <span className="text-white hover:underline">Admin</span>
+          <Image
+            src="/assets/admin-icon.png"
+            alt="Admin"
+            width={24}
+            height={24}
+            className="hover:opacity-80"
+          />
         </Link>
         {onRandomClick && (
           <button
